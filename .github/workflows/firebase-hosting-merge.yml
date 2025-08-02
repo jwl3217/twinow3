@@ -18,14 +18,15 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'npm'               # Optional: npm 캐시 활용
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci                 # lockfile 이용한 깨끗한 설치
 
       - name: Build
         run: npm run build
         env:
-          CI: false
+          CI: false                 # 필요시
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
