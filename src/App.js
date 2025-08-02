@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate }    from 'react-router-dom';
 import { onAuthStateChanged }         from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { refreshUserClaims }          from './firebaseAuth';
 
 import { auth, db }                   from './firebaseConfig';
 import Home                           from './components/Home';
