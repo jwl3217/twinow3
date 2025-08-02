@@ -1,0 +1,197 @@
+/* src/styles/MessageList.css */
+
+/* 1) 전체 컨테이너: fixed 헤더 + 분리선 + 스크롤바디 */
+.msglist-container {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  background: #f5f5f5;
+  box-sizing: border-box;
+}
+
+/* 2) 헤더: 뒤로가기 버튼만 고정 */
+.msglist-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  padding: 0 16px;
+  z-index: 10;
+}
+
+/* 뒤로가기 버튼 */
+.back-button {
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+.back-btn-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* 3) 분리선 */
+.msglist-separator {
+  position: fixed;
+  top: 70px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #ddd;
+  z-index: 9;
+}
+
+/* 4) 본문 스크롤 영역 */
+.msglist-body {
+  position: absolute;
+  top: 71px;      /* 분리선 바로 아래 */
+  bottom: 80px;   /* BottomNav 높이 */
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  overflow-x: hidden;  /* 가로 스크롤 제거 */
+  padding: 16px;
+  background: #f5f5f5;
+  box-sizing: border-box;
+}
+
+/* 5) 카드 스타일: feed의 .post-card 과 동일 */
+.msglist-card {
+  background: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+/* 6) 채팅방 내부 레이아웃 */
+.room-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;       /* 축소 허용 */
+}
+.room-profile {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+}
+.room-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;       /* 축소 허용 */
+}
+.room-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.room-nick {
+  font-weight: bold;
+  margin-right: 8px;
+}
+.room-unread {
+  background: red;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+/*  메시지 줄임표 처리 */
+.room-last {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 7) 우측 메뉴 버튼 */
+.room-menu-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 8px;
+}
+.room-menu {
+  position: absolute;
+  top: 48px;
+  right: 16px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 20;
+}
+.room-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* 8) 나가기 확인 모달 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.3);
+  z-index: 100;
+}
+.leave-confirm {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  z-index: 101;
+}
+.leave-confirm button {
+  margin: 8px;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  background: #eee;
+  cursor: pointer;
+}
+
+
+/* 공통 헤더 스타일 (예: MessageList.css, PostDetail.css, Profile.css, ChatRoom.css) */
+.header-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  pointer-events: none; /* 뒤로가기·메뉴 버튼 클릭 간섭 방지 */
+}

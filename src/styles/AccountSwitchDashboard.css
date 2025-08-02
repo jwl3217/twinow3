@@ -1,0 +1,81 @@
+.switch-container {
+  padding: 20px;
+  padding-bottom: 80px; /* BottomNav 여유 */
+  background: #f5f5f5;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.switch-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  padding: 12px 0;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.switch-header h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.alerts-summary {
+  font-size: 14px;
+  color: #333;
+}
+
+.alerts-count {
+  font-weight: bold;
+  color: #e0245e;
+}
+
+.accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.account-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.1s;
+}
+
+.account-card:hover {
+  transform: translateY(-2px);
+}
+
+.account-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 8px;
+}
+
+.account-nickname {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.account-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #e0245e;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 12px;
+}

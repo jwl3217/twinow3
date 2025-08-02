@@ -1,0 +1,82 @@
+/* 경로: src/styles/Payment.css */
+
+/* 전체 컨테이너: 화면 전체 높이, 툴바와 BottomNav를 피해 내부 스크롤 */
+.payment-container {
+  position: relative;
+  height: 100vh;
+  background: #f5f5f5;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* 헤더 (PostDetail.css와 동일) */
+.detail-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  padding: 0 16px;
+  z-index: 10;
+}
+
+/* 뒤로가기 버튼 */
+.back-button {
+  width: 40px; height: 40px;
+  padding: 0; margin: 0;
+  background: none; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.back-button img {
+  width: 24px; height: 24px;
+}
+
+/* 헤더 타이틀 */
+.header-title {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+/* 1px 분리선 */
+.detail-separator {
+  position: fixed;
+  top: 70px;
+  left: 0; right: 0;
+  height: 1px;
+  background: #ddd;
+  z-index: 9;
+}
+
+/* 스크롤 가능한 본문 영역 */
+.detail-body {
+  position: absolute;
+  top: 71px;        /* 분리선 바로 아래 */
+  bottom: 80px;     /* BottomNav 여유 공간 */
+  left: 0; right: 0;
+  overflow-y: auto;
+  background: #eee;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* 결제 정보 */
+.payment-info {
+  margin-bottom: 32px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* 결제하기 버튼 */
+.pay-button {
+  width: 100%;
+  padding: 12px 0;
+  background: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}

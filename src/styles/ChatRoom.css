@@ -1,0 +1,180 @@
+/* src/styles/ChatRoom.css */
+
+/* 컨테이너: 세로로 쌓이고, 헤더/메시지/입력창 영역으로 분리 */
+.chatroom-container {
+  display: flex;
+  flex-direction: column;
+  height: 88vh;
+}
+
+/* 헤더 고정 */
+.chatroom-header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  background-color: #f5f6f8;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+  z-index: 10;
+}
+
+/* 뒤로가기 버튼 */
+.back-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+.back-btn img {
+  width: 32px;
+  height: 32px;
+}
+
+/* 상대 프로필 아바타 */
+.chatroom-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: contain;
+  margin-right: 8px;
+}
+
+/* 닉네임 */
+.chatroom-name {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 점 3개 메뉴 */
+.dots-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+}
+.dots-btn img {
+  width: 24px;
+  height: 24px;
+}
+
+/* 메시지 리스트 */
+.chatroom-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background-color: #fff;
+}
+
+/* 메시지 아이템 */
+.msg-item {
+  margin-bottom: 12px;
+  max-width: 70%;
+}
+.msg-item.me {
+  background-color: #dcf8c6;
+  border-radius: 16px 16px 0 16px;
+  padding: 8px 12px;
+  margin-left: auto;
+}
+.msg-item.other {
+  background-color: #eef1f6;
+  border-radius: 16px 16px 16px 0;
+  padding: 8px 12px;
+}
+
+/* 메시지 텍스트 */
+.msg-text {
+  margin: 0;
+  word-break: break-word;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+/* 발송 시간 */
+.msg-time {
+  display: block;
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* 상대 퇴장 안내 (가운데 정렬, 크기 축소) */
+.chatroom-exit {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  margin: 8px 0;
+}
+
+/* 입력창 영역 고정 */
+.chatroom-input-wrap {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  background-color: #f5f6f8;
+  border-top: 1px solid #ddd;
+  z-index: 10;
+}
+
+/* 입력 불가 안내 */
+.chatroom-blocked {
+  text-align: center;
+  padding: 12px;
+  font-size: 0.95rem;
+  color: #888;
+}
+
+/* 입력 텍스트 박스 */
+.chatroom-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+/* 전송 버튼 */
+.send-btn {
+  background: none;
+  border: none;
+  margin-left: 8px;
+  padding: 4px;
+  cursor: pointer;
+}
+.send-btn img {
+  width: 28px;
+  height: 28px;
+}
+
+/* 메뉴 드롭다운 */
+.chatroom-menu-dropdown {
+  position: absolute;
+  top: 56px;
+  right: 16px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 100;
+}
+.chatroom-menu-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+.chatroom-menu-dropdown button:hover {
+  background: #f0f0f0;
+}

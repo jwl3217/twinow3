@@ -1,0 +1,124 @@
+/* 경로: src/styles/Withdraw.css */
+
+/* 1) 전체 컨테이너: 화면 전체 높이, 고정 헤더 영역만큼 패딩 */
+.withdraw-container {
+  position: relative;
+  max-width: 480px;
+  margin: 0 auto;
+  height: 100vh;
+  padding: 70px 16px 16px;   /* 상단 70px은 헤더 높이 */
+  background: #fafafa;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* 2) 가상의 헤더 영역: 흰색 배경과 분리선 */
+.withdraw-container::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 70px;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  z-index: 5;
+}
+
+/* 3) 뒤로가기 버튼 (헤더 위로) */
+.back-button {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: 40px;
+  height: 40px;
+  background: #eee;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s;
+}
+.back-button:hover {
+  background: #ddd;
+}
+.back-btn-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* 4) 본문 박스 */
+.withdraw-box {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* 5) 내용 텍스트 */
+.withdraw-text {
+  margin: 0 0 24px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #333;
+}
+.highlight {
+  color: #d32f2f;
+  font-weight: bold;
+}
+
+/* 6) 동의 체크박스 */
+.withdraw-checkbox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 16px;
+}
+.withdraw-checkbox input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #d32f2f;
+}
+
+/* 7) 탈퇴 버튼 */
+.withdraw-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  background: #d32f2f;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.withdraw-btn:hover:not(:disabled) {
+  background: #b71c1c;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.withdraw-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* 8) 헤더 중앙 타이틀 */
+/* ↓ 변경 후 ↓ */
+.withdraw-container .header-title {
+  position: fixed;        /* 뷰포트 기준으로 고정 */
+  top: 22px;              /* 헤더 높이(70px)의 절반 */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  pointer-events: none;
+  z-index: 6;             /* back-button(10)보다 아래, ::before(5)보다 위 */
+}

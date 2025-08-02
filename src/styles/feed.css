@@ -1,0 +1,95 @@
+/* 경로: src/styles/feed.css */
+
+.feed-container {
+  padding: 16px;
+  padding-bottom: 80px; /* 하단 내비 여유 공간 */
+  background: hsl(0, 0%, 96%);
+  min-height: 100vh;
+}
+
+.feed-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* '전체글' 셀렉트는 좁게, '검색' 인풋은 넓게 */
+.feed-header select {
+  flex: 0.4;              /* 전체창의 40% 너비 */
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.feed-header input {
+  flex: 1.6;              /* 전체창의 60% 너비 */
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.post-card {
+  background: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.post-profile {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+}
+
+.post-userinfo h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.post-userinfo p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.post-content {
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.fab-button {
+  position: fixed;
+  bottom: 100px; /* BottomNav 위 */
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #1da1f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+.fab-button img {
+  width: 24px;
+  height: 24px;
+}
