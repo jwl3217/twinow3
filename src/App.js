@@ -1,7 +1,10 @@
+// src/App.js
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate }    from 'react-router-dom';
 import { onAuthStateChanged }         from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { refreshUserClaims }          from './firebaseAuth';
 
 import { auth, db }                   from './firebaseConfig';
 import Home                           from './components/Home';
@@ -19,15 +22,16 @@ import EditProfile                    from './components/EditProfile';
 import Withdraw                       from './components/Withdraw';
 import Report                         from './components/Report';
 import BottomNav                      from './components/BottomNav';
+
 import AdminPage                      from './components/AdminPage';
 import AdminEmailEntry                from './components/AdminEmailEntry';
 import AccountSwitchDashboard         from './components/AccountSwitchDashboard';
 import ProtectedAdminRoute            from './components/ProtectedAdminRoute';
 
 export default function App() {
-  const [user, setUser]           = useState(null);
+  const [user, setUser]               = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isAdmin, setIsAdmin]     = useState(false);
+  const [isAdmin, setIsAdmin]         = useState(false);
 
   // 1) 로그인 상태 및 admin 클레임 감지
   useEffect(() => {
@@ -63,6 +67,7 @@ export default function App() {
 
   return (
     <>
+      {/* 콘텐츠가 BottomNav에 가려지지 않도록 여백 추가 */}
       <div style={{ paddingBottom: 80 }}>
         <Routes>
           <Route path="/"               element={<Home />} />
