@@ -25,3 +25,7 @@ yarn-error.log*
 
 # Firebase Admin SDK service account key
 C:/Users/jaden/keys/firebase-admin.json"path/to/serviceAccountKey.json" 
+
+
+keys/
+path/to/serviceAccountKey.json
