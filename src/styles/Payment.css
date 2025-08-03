@@ -1,6 +1,6 @@
 /* 경로: src/styles/Payment.css */
 
-/* 전체 컨테이너: 화면 전체 높이, 툴바와 BottomNav를 피해 내부 스크롤 */
+/* 전체 컨테이너 */
 .payment-container {
   position: relative;
   height: 100vh;
@@ -38,9 +38,10 @@
 .header-title {
   font-size: 18px;
   font-weight: 500;
+  margin-left: 8px;
 }
 
-/* 1px 분리선 */
+/* 분리선 */
 .detail-separator {
   position: fixed;
   top: 70px;
@@ -50,7 +51,7 @@
   z-index: 9;
 }
 
-/* 스크롤 가능한 본문 영역 */
+/* 본문 영역 */
 .detail-body {
   position: absolute;
   top: 71px;        /* 분리선 바로 아래 */
@@ -69,7 +70,7 @@
   line-height: 1.6;
 }
 
-/* 결제하기 버튼 */
+/* 결제 버튼 */
 .pay-button {
   width: 100%;
   padding: 12px 0;
