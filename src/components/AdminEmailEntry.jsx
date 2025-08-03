@@ -1,5 +1,3 @@
-// src/components/AdminEmailEntry.jsx
-
 import React, { useState } from 'react';
 import { useNavigate }     from 'react-router-dom';
 import '../styles/SignUp.css'; // 기존 SignUp 스타일 재사용
@@ -14,8 +12,10 @@ export default function AdminEmailEntry() {
       alert('이메일과 비밀번호를 모두 입력해 주세요.');
       return;
     }
-    // SignUp 컴포넌트로 email/password 전달
-    navigate('/signup', { state: { email, password } });
+    // SignUp 컴포넌트로 email/password + 관리자 생성 플래그 전달
+    navigate('/signup', {
+      state: { email, password, isAdminEntry: true }
+    });
   };
 
   return (

@@ -30,9 +30,8 @@ import ProtectedAdminRoute            from './components/ProtectedAdminRoute';
 export default function App() {
   const [user, setUser]               = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isAdmin, setIsAdmin]         = useState(false);
+  const [isAdmin, setIsAdmin]         = useState(null);
 
-  // 1) 로그인 상태 및 admin 클레임 감지
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
@@ -46,7 +45,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // 2) 채팅방 미확인 메시지 구독
   useEffect(() => {
     if (!user) return;
     const roomsQ = query(
@@ -66,7 +64,6 @@ export default function App() {
 
   return (
     <>
-      {/* 콘텐츠가 BottomNav에 가려지지 않도록 여백 추가 */}
       <div style={{ paddingBottom: 80 }}>
         <Routes>
           <Route path="/"               element={<Home />} />
@@ -94,7 +91,7 @@ export default function App() {
             }
           />
 
-          {/* 관리자 전용: 이메일/비번 입력 */}
+          {/* 이메일/비번 입력 (관리자만) */}
           <Route
             path="/admin/create"
             element={
@@ -104,17 +101,12 @@ export default function App() {
             }
           />
 
-          {/* 관리자 전용: 계정 전환 대시보드 */}
+          {/* 계정 전환 대시보드 — 로그인 · 권한 상관없이 공개 */}
           <Route
             path="/admin/switch"
-            element={
-              <ProtectedAdminRoute isAdmin={isAdmin}>
-                <AccountSwitchDashboard />
-              </ProtectedAdminRoute>
-            }
+            element={<AccountSwitchDashboard />}
           />
 
-          {/* 그 외는 피드로 */}
           <Route path="*" element={<Navigate to="/feed" replace />} />
         </Routes>
       </div>

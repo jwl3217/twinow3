@@ -1,14 +1,12 @@
 // src/components/Profile.jsx
 
-import React, { useState, useEffect }  from 'react';
-import { useNavigate }                 from 'react-router-dom';
-import { auth, db, functions }         from '../firebaseConfig';
-import { doc, getDoc }                 from 'firebase/firestore';
-import { httpsCallable }                from 'firebase/functions';
-import { signInWithCustomToken }        from 'firebase/auth';
-import defaultProfile                   from '../assets/default-profile.png';
-import backArrow                        from '../assets/back-arrow.png';
-import ImageModal                       from './ImageModal';
+import React, { useState, useEffect } from 'react';
+import { useNavigate }               from 'react-router-dom';
+import { auth, db }                  from '../firebaseConfig';
+import { doc, getDoc }               from 'firebase/firestore';
+import defaultProfile                from '../assets/default-profile.png';
+import backArrow                     from '../assets/back-arrow.png';
+import ImageModal                    from './ImageModal';
 import '../styles/Profile.css';
 
 export default function Profile() {
@@ -37,26 +35,15 @@ export default function Profile() {
       .then(({ claims }) => setIsAdmin(!!claims.admin));
   }, []);
 
-  // 로그아웃 (전환 이력 초기화)
+  // 로그아웃
   const doLogout = () => {
     localStorage.removeItem('impersonatorUid');
     auth.signOut().then(() => navigate('/', { replace: true }));
   };
 
-  // 3) 관리자 복귀
-  const handleReturnToAdmin = async () => {
-    const adminUid = localStorage.getItem('impersonatorUid');
-    if (!adminUid) return;
-    try {
-      const fn = httpsCallable(functions, 'createCustomToken');
-      const { data } = await fn({ uid: adminUid });
-      await signInWithCustomToken(auth, data.token);
-      localStorage.removeItem('impersonatorUid');
-      navigate('/admin/switch', { replace: true });
-    } catch (err) {
-      console.error(err);
-      alert('관리자 복귀에 실패했습니다: ' + err.message);
-    }
+  // 새 창으로 계정 전환 대시보드 열기
+  const openAdminSwitch = () => {
+    window.open(`${window.location.origin}/admin/switch`, '_blank');
   };
 
   if (!userData) return null;
@@ -114,9 +101,9 @@ export default function Profile() {
           </button>
         )}
 
-        {/* 이메일 계정 전환 후 항상 보이는 복귀 버튼 */}
-        {!isAdmin && localStorage.getItem('impersonatorUid') && (
-          <button className="btn" onClick={handleReturnToAdmin}>
+        {/* 이메일로 가입한 유저의 프로필에서만 보이는 '대시보드로 돌아가기' 버튼 */}
+        {!isAdmin && (userData.authProvider === 'email' || userData.authProvider === 'password') && (
+          <button className="btn" onClick={openAdminSwitch}>
             대시보드로 돌아가기
           </button>
         )}
@@ -138,7 +125,7 @@ export default function Profile() {
             </button>
             <button
               className="btn"
-              onClick={() => navigate('/admin/switch')}
+              onClick={openAdminSwitch}
             >
               계정 전환 대시보드
             </button>
@@ -167,7 +154,9 @@ export default function Profile() {
       )}
 
       {/* 이미지 확대 모달 */}
-      {modalSrc && <ImageModal src={modalSrc} onClose={() => setModalSrc(null)} />}
+      {modalSrc && (
+        <ImageModal src={modalSrc} onClose={() => setModalSrc(null)} />
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-// 경로: src/components/MessageList.jsx
+// src/components/MessageList.jsx
 
 import React, { useState, useEffect } from 'react';
 import backArrow from '../assets/back-arrow.png';
@@ -57,7 +57,7 @@ export default function MessageList() {
               userData = usSnap.data();
             }
           }
-          const unknownDel  = otherId && !userData.nickname;
+          const unknownDel    = otherId && !userData.nickname;
           const iBlockedThem  = blockedUsers.includes(otherId);
           const theyBlockedMe = userData.blockedUsers?.includes(uid);
 
@@ -153,14 +153,7 @@ export default function MessageList() {
                     </span>
                   )}
                 </div>
-                <div
-                  className="room-last"
-                  style={{
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                >
+                <div className="room-last">
                   {room.lastMessage || ''}
                 </div>
               </div>
@@ -190,22 +183,71 @@ export default function MessageList() {
             )}
           </div>
         ))}
-
-        {leaveId && (
-          <>
-            <div className="modal-overlay" />
-            <div className="leave-confirm">
-              <p>
-                정말 채팅방을 나가시겠습니까?
-                <br />
-                나가시면 이후 이 채팅에서는 메시지를 보낼 수 없습니다.
-              </p>
-              <button onClick={confirmLeave}>네</button>
-              <button onClick={() => setLeaveId(null)}>아니요</button>
-            </div>
-          </>
-        )}
       </div>
+
+      {/* 모달: 스크롤 영역 밖, 최상단에 렌더링 */}
+      {leaveId && (
+        <>
+          {/* 배경 오버레이 (클릭 시 모달 닫기) */}
+          <div
+            className="modal-overlay"
+            onClick={() => setLeaveId(null)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'rgba(0,0,0,0.3)',
+              zIndex: 1000
+            }}
+          />
+          {/* 확인창 */}
+          <div
+            className="leave-confirm"
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: '#fff',
+              padding: '20px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              zIndex: 1001,
+              textAlign: 'center'
+            }}
+          >
+            <p style={{ marginBottom: '16px' }}>정말 채팅방을 나가시겠습니까?</p>
+            <button
+              onClick={confirmLeave}
+              style={{
+                marginRight: '8px',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                background: '#1da1f2',
+                color: '#fff',
+                cursor: 'pointer'
+              }}
+            >
+              예
+            </button>
+            <button
+              onClick={() => setLeaveId(null)}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                background: '#eee',
+                cursor: 'pointer'
+              }}
+            >
+              아니요
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
