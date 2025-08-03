@@ -1,4 +1,4 @@
-// src/components/Profile.jsx
+// 경로: src/components/Profile.jsx
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate }               from 'react-router-dom';
@@ -11,10 +11,10 @@ import '../styles/Profile.css';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const [userData, setUserData]               = useState(null);
+  const [userData, setUserData]             = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [modalSrc, setModalSrc]               = useState(null);
-  const [isAdmin, setIsAdmin]                 = useState(false);
+  const [modalSrc, setModalSrc]             = useState(null);
+  const [isAdmin, setIsAdmin]               = useState(false);
 
   // 1) 사용자 정보 로드
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function Profile() {
     })();
   }, [navigate]);
 
-  // 2) 관리자 여부 확인
+  // 2) 관리자 여부 확인 (custom claim)
   useEffect(() => {
     auth.currentUser
       ?.getIdTokenResult()
@@ -41,7 +41,7 @@ export default function Profile() {
     auth.signOut().then(() => navigate('/', { replace: true }));
   };
 
-  // 새 창으로 계정 전환 대시보드 열기
+  // 관리용 대시보드 열기
   const openAdminSwitch = () => {
     window.open(`${window.location.origin}/admin/switch`, '_blank');
   };
@@ -101,14 +101,16 @@ export default function Profile() {
           </button>
         )}
 
-        {/* 이메일로 가입한 유저의 프로필에서만 보이는 '대시보드로 돌아가기' 버튼 */}
-        {!isAdmin && (userData.authProvider === 'email' || userData.authProvider === 'password') && (
-          <button className="btn" onClick={openAdminSwitch}>
-            대시보드로 돌아가기
-          </button>
-        )}
+        {/* 이메일 가입 유저에게만 보이는 대시보드 복귀 버튼 */}
+        {!isAdmin &&
+          (userData.authProvider === 'email' ||
+           userData.authProvider === 'password') && (
+            <button className="btn" onClick={openAdminSwitch}>
+              대시보드로 돌아가기
+            </button>
+          )}
 
-        {/* 관리자 본인일 때만 */}
+        {/* 관리자 전용 버튼 */}
         {isAdmin && (
           <>
             <button
@@ -123,10 +125,7 @@ export default function Profile() {
             >
               이메일로 로그인
             </button>
-            <button
-              className="btn"
-              onClick={openAdminSwitch}
-            >
+            <button className="btn" onClick={openAdminSwitch}>
               계정 전환 대시보드
             </button>
           </>
@@ -139,7 +138,10 @@ export default function Profile() {
           <div className="logout-modal">
             <p>정말 로그아웃하시겠습니까?</p>
             <div className="logout-modal-buttons">
-              <button className="logout-btn-confirm" onClick={doLogout}>
+              <button
+                className="logout-btn-confirm"
+                onClick={doLogout}
+              >
                 네
               </button>
               <button

@@ -5,6 +5,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "serve": "node server.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "serve:firebase": "firebase serve"
@@ -14,9 +15,12 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "body-parser": "^2.2.0",
     "crypto-js": "^4.2.0",
+    "express": "^4.21.2",
     "firebase": "^9.23.0",
     "firebase-admin": "^13.4.0",
+    "node-fetch": "^2.6.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.7.1",

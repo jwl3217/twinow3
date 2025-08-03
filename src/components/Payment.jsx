@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { auth, db }               from '../firebaseConfig';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import backArrow                   from '../assets/back-arrow.png';
 import '../styles/Payment.css';
 
@@ -9,7 +11,7 @@ export default function Payment() {
   const { amount } = useParams();      // URL 파라미터: "/payment/15000" 등
   const navigate  = useNavigate();
 
-  // 1) 코인 갯수별 실제 결제 금액 매핑
+  // 1) 코인 개수별 실제 결제 금액 매핑
   const priceMap = {
     15000: 4700,
     20000: 12000,
@@ -34,6 +36,7 @@ export default function Payment() {
     // 3) 콜백 함수들
     fnSuccess: async (data) => {
       try {
+        // 서버 승인 API 호출
         const res = await fetch('/api/pay/approve', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -44,8 +47,16 @@ export default function Payment() {
         });
         const result = await res.json();
         if (result.ok) {
-          alert('결제 완료되었습니다!');
-          navigate('/');
+          // ✅ 결제 성공 시, 코인 추가
+          const user = auth.currentUser;
+          if (user) {
+            const userRef = doc(db, 'users', user.uid);
+            const snap    = await getDoc(userRef);
+            const prev    = snap.data()?.coins || 0;
+            await updateDoc(userRef, { coins: prev + coinCount });
+          }
+          alert('결제 완료되었습니다! 코인이 추가되었습니다.');
+          navigate('/', { replace: true });
         } else {
           alert('결제 승인 실패: ' + result.error);
         }

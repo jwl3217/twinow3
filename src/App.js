@@ -4,36 +4,38 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate }    from 'react-router-dom';
 import { onAuthStateChanged }         from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-
 import { auth, db }                   from './firebaseConfig';
-import Home                           from './components/Home';
-import SignUp                         from './components/SignUp';
-import Feed                           from './components/Feed';
-import PostCreate                     from './components/PostCreate';
-import PostDetail                     from './components/PostDetail';
-import EditPost                       from './components/EditPost';
-import MessageList                    from './components/MessageList';
-import ChatRoom                       from './components/ChatRoom';
-import Shop                           from './components/Shop';
-import Payment                        from './components/Payment';
-import Profile                        from './components/Profile';
-import EditProfile                    from './components/EditProfile';
-import Withdraw                       from './components/Withdraw';
-import Report                         from './components/Report';
-import BottomNav                      from './components/BottomNav';
 
-import AdminPage                      from './components/AdminPage';
-import AdminEmailEntry                from './components/AdminEmailEntry';
-import AccountSwitchDashboard         from './components/AccountSwitchDashboard';
-import ProtectedAdminRoute            from './components/ProtectedAdminRoute';
+import Home                       from './components/Home';
+import SignUp                     from './components/SignUp';
+import Feed                       from './components/Feed';
+import PostCreate                 from './components/PostCreate';
+import PostDetail                 from './components/PostDetail';
+import EditPost                   from './components/EditPost';
+import MessageList                from './components/MessageList';
+import ChatRoom                   from './components/ChatRoom';
+import Shop                       from './components/Shop';
+import Payment                    from './components/Payment';
+import PaymentResult              from './components/PaymentResult';
+import Profile                    from './components/Profile';
+import EditProfile                from './components/EditProfile';
+import Withdraw                   from './components/Withdraw';
+import Report                     from './components/Report';
+import BottomNav                  from './components/BottomNav';
+
+import AdminPage                  from './components/AdminPage';
+import AdminEmailEntry            from './components/AdminEmailEntry';
+import AccountSwitchDashboard     from './components/AccountSwitchDashboard';
+import ProtectedAdminRoute        from './components/ProtectedAdminRoute';
 
 export default function App() {
   const [user, setUser]               = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isAdmin, setIsAdmin]         = useState(null);
+  const [isAdmin, setIsAdmin]         = useState(false);
 
+  // 로그인 상태 + admin claim
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    const unsub = onAuthStateChanged(auth, async u => {
       setUser(u);
       if (u) {
         const { claims } = await u.getIdTokenResult();
@@ -45,13 +47,14 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  // unread 카운트 실시간 업데이트
   useEffect(() => {
     if (!user) return;
     const roomsQ = query(
       collection(db, 'chatRooms'),
       where('members', 'array-contains', user.uid)
     );
-    const unsub = onSnapshot(roomsQ, (snap) => {
+    const unsub = onSnapshot(roomsQ, snap => {
       let cnt = 0;
       snap.docs.forEach(d => {
         const ucount = d.data().unread?.[user.uid] || 0;
@@ -66,22 +69,23 @@ export default function App() {
     <>
       <div style={{ paddingBottom: 80 }}>
         <Routes>
-          <Route path="/"               element={<Home />} />
-          <Route path="/signup"         element={<SignUp />} />
-          <Route path="/feed"           element={<Feed />} />
-          <Route path="/post/new"       element={<PostCreate />} />
-          <Route path="/post/:id"       element={<PostDetail />} />
-          <Route path="/post/:id/edit"  element={<EditPost />} />
-          <Route path="/messages"       element={<MessageList />} />
-          <Route path="/chat/:roomId"   element={<ChatRoom />} />
-          <Route path="/shop"           element={<Shop />} />
+          <Route path="/"                element={<Home />} />
+          <Route path="/signup"          element={<SignUp />} />
+          <Route path="/feed"            element={<Feed />} />
+          <Route path="/post/new"        element={<PostCreate />} />
+          <Route path="/post/:id"        element={<PostDetail />} />
+          <Route path="/post/:id/edit"   element={<EditPost />} />
+          <Route path="/messages"        element={<MessageList />} />
+          <Route path="/chat/:roomId"    element={<ChatRoom />} />
+          <Route path="/shop"            element={<Shop />} />
           <Route path="/payment/:amount" element={<Payment />} />
-          <Route path="/profile"        element={<Profile />} />
-          <Route path="/profile/edit"   element={<EditProfile />} />
-          <Route path="/withdraw"       element={<Withdraw />} />
-          <Route path="/report/:id"     element={<Report />} />
+          <Route path="/payment/result"  element={<PaymentResult />} />
+          <Route path="/profile"         element={<Profile />} />
+          <Route path="/profile/edit"    element={<EditProfile />} />
+          <Route path="/withdraw"        element={<Withdraw />} />
+          <Route path="/report/:id"      element={<Report />} />
 
-          {/* 관리자 전용 대시보드 */}
+          {/* 관리자 전용 */}
           <Route
             path="/admin"
             element={
@@ -90,8 +94,6 @@ export default function App() {
               </ProtectedAdminRoute>
             }
           />
-
-          {/* 이메일/비번 입력 (관리자만) */}
           <Route
             path="/admin/create"
             element={
@@ -100,8 +102,7 @@ export default function App() {
               </ProtectedAdminRoute>
             }
           />
-
-          {/* 계정 전환 대시보드 — 로그인 · 권한 상관없이 공개 */}
+          {/* 계정 전환 대시보드는 공개 */}
           <Route
             path="/admin/switch"
             element={<AccountSwitchDashboard />}
