@@ -13,29 +13,23 @@ export default function Payment() {
   const coinCount = Number(amount);
   const priceMap  = {15000:4700,20000:12000,30000:20000,50000:35000};
   const payAmount = priceMap[coinCount] || 0;
-
-  // orderId 대신 merchantUid 로 전달
-  const merchantUid = `order_${Date.now()}`;
+  const orderId   = `order_${Date.now()}`;
 
   const payOptions = {
-    clientId:    'R2_e7af7dfe1d684817a588799dbceadc61',
-    method:      'card',
-    merchantUid,              // ← 여기
-    amount:      payAmount,
-    goodsName:   `코인 ${coinCount.toLocaleString()}개`,
-    popup:       true,        // 팝업 모드
-    returnUrl:   `${window.location.origin}/payment/result`,
+    clientId:  'R2_e7af7dfe1d684817a588799dbceadc61',
+    method:    'card',
+    orderId,                        // ← `orderId`로 전달
+    amount:    payAmount,
+    goodsName: `코인 ${coinCount.toLocaleString()}개`,
+    popup:     true,
 
     fnSuccess: async data => {
       try {
-        // 승인 API 호출
+        // 승인 API 호출 (orderId, tid)
         const res = await fetch('/api/pay/approve', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            merchantUid,         // 서버로도 merchantUid로
-            tid: data.tid
-          })
+          body:    JSON.stringify({ orderId, tid: data.tid })
         });
         const result = await res.json();
         if (!result.ok) {
@@ -43,7 +37,7 @@ export default function Payment() {
           return;
         }
 
-        // 파이어스토어 코인 업데이트
+        // Firestore 코인 업데이트
         const user = auth.currentUser;
         if (user) {
           const userRef = doc(db, 'users', user.uid);
@@ -61,7 +55,7 @@ export default function Payment() {
     },
 
     fnCancel: () => alert('결제를 취소했습니다.'),
-    fnError: err  => alert('결제 오류: ' + (err.msg || JSON.stringify(err)))
+    fnError: err => alert('결제 오류: ' + (err.msg || JSON.stringify(err))),
   };
 
   const onPayClick = () => {
