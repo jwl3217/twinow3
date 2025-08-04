@@ -23,7 +23,7 @@ export default function PaymentResult() {
       try {
         const res = await fetch('/api/pay/approve', {
           method:  'POST',
-          headers: {'Content-Type':'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ merchantUid, tid })
         });
         const result = await res.json();
@@ -45,7 +45,10 @@ export default function PaymentResult() {
   return (
     <div style={{ padding: 20, textAlign: 'center' }}>
       <h2>{status}</h2>
-      <button onClick={() => navigate('/feed', { replace: true })}>
+      <button
+        type="button"
+        onClick={() => navigate('/feed', { replace: true })}
+      >
         피드로
       </button>
     </div>
