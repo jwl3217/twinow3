@@ -14,24 +14,27 @@ export default function Payment() {
   const priceMap  = {15000:4700,20000:12000,30000:20000,50000:35000};
   const payAmount = priceMap[coinCount] || 0;
 
-  // merchant_uid 필드로 반드시 전달해야 fnSuccess가 호출됩니다
-  const merchant_uid = `mid_${Date.now()}`;
+  // ★ 반드시 merchantUid로 넘겨야 fnSuccess가 실행됩니다
+  const merchantUid = `order_${Date.now()}`;
 
   const payOptions = {
-    clientId:     'R2_e7af7dfe1d684817a588799dbceadc61',
-    method:       'card',
-    merchant_uid,              // ← v1은 orderId가 아닌 merchant_uid
-    amount:       payAmount,
-    goodsName:    `코인 ${coinCount.toLocaleString()}개`,
-    popup:        true,        // 팝업 모드로 호출
+    clientId:    'R2_e7af7dfe1d684817a588799dbceadc61',
+    method:      'card',
+    merchantUid,               // ← 여기 key 이름 꼭 지켜주세요
+    amount:      payAmount,
+    goodsName:   `코인 ${coinCount.toLocaleString()}개`,
+    popup:       true,         // 팝업 모드
 
     fnSuccess: async ({ merchant_uid, tid }) => {
       try {
-        // 1) 서버 승인 API 호출
+        // 1) 승인 API 호출
         const res = await fetch('/api/pay/approve', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ merchantUid: merchant_uid, tid })
+          body:    JSON.stringify({
+            merchantUid: merchant_uid, 
+            tid
+          })
         });
         const { ok, error } = await res.json();
         if (!ok) {
@@ -39,7 +42,7 @@ export default function Payment() {
           return;
         }
 
-        // 2) 코인 충전
+        // 2) Firestore 코인 업데이트
         const user = auth.currentUser;
         if (user) {
           const userRef = doc(db, 'users', user.uid);
@@ -48,7 +51,7 @@ export default function Payment() {
           await updateDoc(userRef, { coins: prev + coinCount });
         }
 
-        // 3) 완료 안내 및 피드로
+        // 3) 완료 안내 및 피드 이동
         alert('결제 완료! 코인이 추가되었습니다.');
         navigate('/feed', { replace: true });
       } catch (e) {
@@ -57,19 +60,13 @@ export default function Payment() {
       }
     },
 
-    fnCancel: () => {
-      alert('결제를 취소했습니다.');
-    },
-
-    fnError: err => {
-      console.error(err);
-      alert('결제 오류: ' + JSON.stringify(err));
-    }
+    fnCancel: () => alert('결제를 취소했습니다.'),
+    fnError:   err => alert('결제 오류: ' + (err.msg||JSON.stringify(err))),
   };
 
   const onPayClick = () => {
     if (!window.AUTHNICE?.requestPay) {
-      alert('결제 모듈 준비 중입니다.');
+      alert('결제 모듈 준비 중입니다. 잠시 후 다시 시도해주세요.');
       return;
     }
     window.AUTHNICE.requestPay(payOptions);
