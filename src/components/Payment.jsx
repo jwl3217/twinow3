@@ -21,9 +21,11 @@ export default function Payment() {
     orderId,
     amount:    payAmount,
     goodsName: `코인 ${coinCount.toLocaleString()}개`,
-    // returnUrl 제거 — 팝업에서 fnSuccess가 호출되도록
+    popup:     true,       // ← NICEPAY 팝업 모드로 호출해서 fnSuccess 콜백이 실행되도록
+
     fnSuccess: async data => {
       try {
+        // 1) 승인 API 호출
         const res = await fetch('/api/pay/approve', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -35,6 +37,7 @@ export default function Payment() {
           return;
         }
 
+        // 2) 파이어스토어에 코인 업데이트
         const user = auth.currentUser;
         if (user) {
           const userRef = doc(db, 'users', user.uid);
@@ -43,6 +46,7 @@ export default function Payment() {
           await updateDoc(userRef, { coins: prev + coinCount });
         }
 
+        // 3) 완료 안내 및 피드로 이동
         alert('결제 완료! 코인이 추가되었습니다.');
         navigate('/feed', { replace: true });
       } catch (e) {
@@ -50,12 +54,13 @@ export default function Payment() {
         alert('결제 처리 중 오류가 발생했습니다.');
       }
     },
+
     fnCancel: () => {
       alert('결제를 취소했습니다.');
     },
     fnError: err => {
       alert('결제 오류: ' + (err.msg || JSON.stringify(err)));
-    },
+    }
   };
 
   const onPayClick = () => {
