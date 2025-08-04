@@ -8,24 +8,24 @@ import backArrow                        from '../assets/back-arrow.png';
 import '../styles/Payment.css';
 
 export default function Payment() {
-  const { amount } = useParams();           
+  const { amount } = useParams();
   const navigate  = useNavigate();
   const coinCount = Number(amount);
   const priceMap  = {15000:4700,20000:12000,30000:20000,50000:35000};
-  const payAmount = priceMap[coinCount] || 0; 
+  const payAmount = priceMap[coinCount] || 0;
   const orderId   = `order_${Date.now()}`;
+  const returnUrl = `${window.location.origin}/payment/result`; // ← 반드시 포함
 
   const payOptions = {
-    clientId:  'R2_e7af7dfe1d684817a588799dbceadc61',
-    method:    'card',
+    clientId:   'R2_e7af7dfe1d684817a588799dbceadc61',
+    method:     'card',
     orderId,
-    amount:    payAmount,
-    goodsName: `코인 ${coinCount.toLocaleString()}개`,
+    amount:     payAmount,
+    goodsName:  `코인 ${coinCount.toLocaleString()}개`,
+    returnUrl,  // 이 줄이 없으면 POST 리다이렉트가 동작하지 않습니다!
 
-    // 인증 성공 시: 즉시 승인 API 호출 → DB 업데이트 → 피드 이동
     fnSuccess: async data => {
       try {
-        // 1) 승인 API 호출
         const res    = await fetch('/api/pay/approve', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -37,7 +37,6 @@ export default function Payment() {
           return;
         }
 
-        // 2) 파이어스토어에 코인 업데이트
         const user    = auth.currentUser;
         if (user) {
           const userRef = doc(db, 'users', user.uid);
@@ -46,7 +45,6 @@ export default function Payment() {
           await updateDoc(userRef, { coins: prev + coinCount });
         }
 
-        // 3) 성공 안내 및 피드로 이동
         alert('결제 완료! 코인이 추가되었습니다.');
         navigate('/feed', { replace: true });
       } catch (e) {
@@ -56,7 +54,7 @@ export default function Payment() {
     },
 
     fnCancel: () => alert('결제를 취소했습니다.'),
-    fnError: err  => alert('결제 오류: ' + (err.msg || JSON.stringify(err)))
+    fnError: err => alert('결제 오류: ' + (err.msg || JSON.stringify(err)))
   };
 
   const onPayClick = () => {
