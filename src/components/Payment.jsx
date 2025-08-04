@@ -21,11 +21,9 @@ export default function Payment() {
     orderId,
     amount:    payAmount,
     goodsName: `코인 ${coinCount.toLocaleString()}개`,
-
-    // 인증 성공 시 즉시 승인 & 코인 충전 & 피드 이동 처리
+    // returnUrl 제거 — 팝업에서 fnSuccess가 호출되도록
     fnSuccess: async data => {
       try {
-        // 승인 API
         const res = await fetch('/api/pay/approve', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -37,7 +35,6 @@ export default function Payment() {
           return;
         }
 
-        // Firestore 코인 업데이트
         const user = auth.currentUser;
         if (user) {
           const userRef = doc(db, 'users', user.uid);
@@ -53,13 +50,12 @@ export default function Payment() {
         alert('결제 처리 중 오류가 발생했습니다.');
       }
     },
-
     fnCancel: () => {
       alert('결제를 취소했습니다.');
     },
     fnError: err => {
       alert('결제 오류: ' + (err.msg || JSON.stringify(err)));
-    }
+    },
   };
 
   const onPayClick = () => {
