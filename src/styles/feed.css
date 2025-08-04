@@ -13,7 +13,6 @@
   margin-bottom: 16px;
 }
 
-/* '전체글' 셀렉트는 좁게, '검색' 인풋은 넓게 */
 .feed-header select {
   flex: 0.4;              /* 전체창의 40% 너비 */
   padding: 8px 12px;
@@ -28,6 +27,24 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
+}
+
+/* 추가: 검색 버튼 스타일 */
+.feed-header .search-button {
+  flex: 0 0 40px;         /* 고정 너비 40px */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.feed-header .search-button img {
+  width: 20px;
+  height: 20px;
 }
 
 .post-list {

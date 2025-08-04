@@ -11,7 +11,7 @@ router.post('/approve', async (req, res) => {
   const authHeader = 'Basic ' +
     Buffer.from(`${CLIENT_KEY}:${SECRET_KEY}`).toString('base64');
 
-  const resp = await fetch('https://sandbox-api.nicepay.co.kr/v2/api/approve', {
+  const resp = await fetch('https://api.nicepay.co.kr/v1/pay', {
     method: 'POST',
     headers: {
       'Authorization': authHeader,

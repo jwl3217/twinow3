@@ -1,9 +1,10 @@
-// 경로: src/components/Profile.jsx
+// src/components/Profile.jsx
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate }               from 'react-router-dom';
 import { auth, db }                  from '../firebaseConfig';
 import { doc, getDoc }               from 'firebase/firestore';
+import { onAuthStateChanged }        from 'firebase/auth';
 import defaultProfile                from '../assets/default-profile.png';
 import backArrow                     from '../assets/back-arrow.png';
 import ImageModal                    from './ImageModal';
@@ -16,52 +17,57 @@ export default function Profile() {
   const [modalSrc, setModalSrc]             = useState(null);
   const [isAdmin, setIsAdmin]               = useState(false);
 
-  // 1) 사용자 정보 로드
+  // Auth 상태 감시 및 사용자 정보 로드
   useEffect(() => {
-    const u = auth.currentUser;
-    if (!u) return navigate('/', { replace: true });
-
-    (async () => {
-      const snap = await getDoc(doc(db, 'users', u.uid));
-      if (!snap.exists()) return navigate('/signup', { replace: true });
-      setUserData(snap.data());
-    })();
+    const unsubAuth = onAuthStateChanged(auth, async u => {
+      if (!u) {
+        navigate('/', { replace: true });
+        return;
+      }
+      try {
+        const snap = await getDoc(doc(db, 'users', u.uid));
+        if (!snap.exists()) {
+          navigate('/signup', { replace: true });
+          return;
+        }
+        setUserData(snap.data());
+      } catch (e) {
+        console.error('유저 데이터 로드 오류:', e);
+      }
+    });
+    return () => unsubAuth();
   }, [navigate]);
 
-  // 2) 관리자 여부 확인 (custom claim)
+  // 관리자 여부 확인
   useEffect(() => {
     auth.currentUser
       ?.getIdTokenResult()
-      .then(({ claims }) => setIsAdmin(!!claims.admin));
+      .then(({ claims }) => setIsAdmin(!!claims.admin))
+      .catch(console.error);
   }, []);
 
-  // 로그아웃
   const doLogout = () => {
     localStorage.removeItem('impersonatorUid');
     auth.signOut().then(() => navigate('/', { replace: true }));
-  };
-
-  // 관리용 대시보드 열기
-  const openAdminSwitch = () => {
-    window.open(`${window.location.origin}/admin/switch`, '_blank');
   };
 
   if (!userData) return null;
 
   return (
     <div className="profile-container">
-      {/* 1) 헤더 */}
       <header className="profile-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+        <button
+          type="button"
+          className="back-button"
+          onClick={() => navigate(-1)}
+        >
           <img src={backArrow} alt="뒤로가기" className="back-btn-icon" />
         </button>
         <span className="header-title">마이페이지</span>
       </header>
 
-      {/* 2) 분리선 */}
       <div className="profile-separator" />
 
-      {/* 3) 본문 */}
       <div className="profile-body">
         <img
           src={userData.photoURL || defaultProfile}
@@ -81,70 +87,56 @@ export default function Profile() {
           {userData.nickname}님의 코인은 {userData.coins}개입니다
         </p>
 
-        <button className="btn" onClick={() => navigate('/shop')}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => navigate('/shop')}
+        >
           코인 구매하기
         </button>
-        <button className="btn" onClick={() => navigate('/profile/edit')}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => navigate('/profile/edit')}
+        >
           프로필 수정
         </button>
-        <button className="btn" onClick={() => setShowLogoutConfirm(true)}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => setShowLogoutConfirm(true)}
+        >
           로그아웃
         </button>
-
-        {/* 일반 사용자만 회원탈퇴 */}
         {!isAdmin && (
           <button
+            type="button"
             className="text-link withdraw-text"
             onClick={() => navigate('/withdraw')}
           >
             회원탈퇴
           </button>
         )}
-
-        {/* 이메일 가입 유저에게만 보이는 대시보드 복귀 버튼 */}
-        {!isAdmin &&
-          (userData.authProvider === 'email' ||
-           userData.authProvider === 'password') && (
-            <button className="btn" onClick={openAdminSwitch}>
-              대시보드로 돌아가기
-            </button>
-          )}
-
-        {/* 관리자 전용 버튼 */}
-        {isAdmin && (
-          <>
-            <button
-              className="btn"
-              onClick={() => navigate('/admin/create')}
-            >
-              이메일로 계정 생성
-            </button>
-            <button
-              className="btn"
-              onClick={() => navigate('/admin/login')}
-            >
-              이메일로 로그인
-            </button>
-            <button className="btn" onClick={openAdminSwitch}>
-              계정 전환 대시보드
-            </button>
-          </>
-        )}
       </div>
 
-      {/* 로그아웃 확인 모달 */}
       {showLogoutConfirm && (
         <div className="logout-modal-overlay">
-          <div className="logout-modal">
+          <div
+            className="logout-modal"
+            role="dialog"
+            aria-modal="true"
+          >
             <p>정말 로그아웃하시겠습니까?</p>
             <div className="logout-modal-buttons">
               <button
+                type="button"
                 className="logout-btn-confirm"
                 onClick={doLogout}
               >
                 네
               </button>
               <button
+                type="button"
                 className="logout-btn-cancel"
                 onClick={() => setShowLogoutConfirm(false)}
               >
@@ -155,9 +147,11 @@ export default function Profile() {
         </div>
       )}
 
-      {/* 이미지 확대 모달 */}
       {modalSrc && (
-        <ImageModal src={modalSrc} onClose={() => setModalSrc(null)} />
+        <ImageModal
+          src={modalSrc}
+          onClose={() => setModalSrc(null)}
+        />
       )}
     </div>
   );

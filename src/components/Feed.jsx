@@ -1,4 +1,4 @@
-// 경로: src/components/Feed.jsx
+// src/components/Feed.jsx
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate }                from 'react-router-dom';
@@ -15,33 +15,31 @@ import { onAuthStateChanged }         from 'firebase/auth';
 import defaultProfile                 from '../assets/default-profile.png';
 import ImageModal                     from './ImageModal';
 import '../styles/feed.css';
+import searchIcon from '../assets/search-icon.png';
 
 export default function Feed() {
   const navigate = useNavigate();
-  const [posts, setPosts]               = useState([]);
-  const [users, setUsers]               = useState({});
-  const [selectedGender, setSelectedGender] = useState('all');
-  const [searchText, setSearchText]     = useState('');
-  const [modalSrc, setModalSrc]         = useState(null);
-  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [posts, setPosts]                       = useState([]);
+  const [users, setUsers]                       = useState({});
+  const [selectedGender, setSelectedGender]     = useState('all');
+  const [searchInput, setSearchInput]           = useState('');   // 변경: 입력용
+  const [searchText, setSearchText]             = useState('');   // 변경: 실제 검색 기준
+  const [modalSrc, setModalSrc]                 = useState(null);
+  const [blockedUsers, setBlockedUsers]         = useState([]);
   const currentUid = auth.currentUser?.uid;
 
-  // ───────────────────────────────────────────────────────────────────────────────
-  // 1) 로그인 상태 확인: 로그인 안 되어 있으면 홈으로
+  // 1) 로그인 상태 확인
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, user => {
-      if (!user) {
-        navigate('/', { replace: true });
-      }
+    const unsub = onAuthStateChanged(auth, user => {
+      if (!user) navigate('/', { replace: true });
     });
-    return unsubscribe;
+    return unsub;
   }, [navigate]);
 
-  // ───────────────────────────────────────────────────────────────────────────────
   // 2) 포스트 & 유저 로드
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, async snap => {
+    const qPosts = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(qPosts, async snap => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setPosts(data);
       const uids = [...new Set(data.map(p => p.uid))];
@@ -54,50 +52,45 @@ export default function Feed() {
       );
       const nu = {};
       fetched.forEach(i => i && (nu[i.uid] = i.data));
-      if (Object.keys(nu).length) {
-        setUsers(prev => ({ ...prev, ...nu }));
-      }
+      if (Object.keys(nu).length) setUsers(prev => ({ ...prev, ...nu }));
     });
     return () => unsub();
   }, [users]);
 
-  // ───────────────────────────────────────────────────────────────────────────────
   // 3) 내 차단 목록
   useEffect(() => {
     if (!currentUid) return;
     (async () => {
-      const me = await getDoc(doc(db, 'users', currentUid));
-      setBlockedUsers(me.data()?.blockedUsers || []);
+      const meSnap = await getDoc(doc(db, 'users', currentUid));
+      setBlockedUsers(meSnap.data()?.blockedUsers || []);
     })();
   }, [currentUid]);
 
-  // ───────────────────────────────────────────────────────────────────────────────
   // 시간 표시 함수
   const timeAgo = ts => {
     if (!ts?.toMillis) return '';
     const diff = Date.now() - ts.toMillis();
     const sec  = Math.floor(diff / 1000);
     if (sec < 60) return `${sec}초 전`;
-    const min  = Math.floor(sec / 60);
+    const min = Math.floor(sec / 60);
     if (min < 60) return `${min}분 전`;
-    const hr   = Math.floor(min / 60);
+    const hr  = Math.floor(min / 60);
     if (hr < 24) return `${hr}시간 전`;
-    const day  = Math.floor(hr / 24);
+    const day = Math.floor(hr / 24);
     if (day < 365) return `${day}일 전`;
     return `${Math.floor(day / 365)}년 전`;
   };
 
-  // ───────────────────────────────────────────────────────────────────────────────
-  // 필터링
+  // 필터링 (searchText 기준)
   const filtered = posts.filter(post => {
     const u = users[post.uid] || {};
     if (selectedGender === 'male' && u.gender !== 'male')     return false;
     if (selectedGender === 'female' && u.gender !== 'female') return false;
     const txt = searchText.trim().toLowerCase();
     if (txt) {
-      const a = (u.nickname || '').toLowerCase().includes(txt);
-      const b = (u.region   || '').toLowerCase().includes(txt);
-      const c = (post.content || '').toLowerCase().includes(txt);
+      const a = (u.nickname  || '').toLowerCase().includes(txt);
+      const b = (u.region    || '').toLowerCase().includes(txt);
+      const c = (post.content|| '').toLowerCase().includes(txt);
       if (!a && !b && !c) return false;
     }
     return true;
@@ -117,9 +110,16 @@ export default function Feed() {
         <input
           type="text"
           placeholder="지역, 닉네임, 글 내용 검색"
-          value={searchText}
-          onChange={e => setSearchText(e.target.value)}
+          value={searchInput}                          // 변경
+          onChange={e => setSearchInput(e.target.value)} // 변경
         />
+        <button
+   type="button"
+   onClick={() => setSearchText(searchInput)}
+   className="search-button"
+ >
+   <img src={searchIcon} alt="검색" />
+ </button>
       </div>
 
       <div className="post-list">
@@ -156,7 +156,7 @@ export default function Feed() {
                   <h3>{nick}</h3>
                   {!isBlocked && (
                     <p>
-                      {u.age || '--'}세 · {u.gender === 'male' ? '남자' : '여자'} ·{' '}
+                      {u.age || '--'}세 · {u.gender==='male'?'남자':'여자'} ·{' '}
                       {u.region || '--'} · {timeAgo(post.createdAt)}
                     </p>
                   )}
