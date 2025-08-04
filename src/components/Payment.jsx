@@ -14,19 +14,19 @@ export default function Payment() {
   const priceMap  = {15000:4700,20000:12000,30000:20000,50000:35000};
   const payAmount = priceMap[coinCount] || 0;
   const orderId   = `order_${Date.now()}`;
-  const returnUrl = `${window.location.origin}/payment/result`; // ← 반드시 포함
 
   const payOptions = {
-    clientId:   'R2_e7af7dfe1d684817a588799dbceadc61',
-    method:     'card',
+    clientId:  'R2_e7af7dfe1d684817a588799dbceadc61',
+    method:    'card',
     orderId,
-    amount:     payAmount,
-    goodsName:  `코인 ${coinCount.toLocaleString()}개`,
-    returnUrl,  // 이 줄이 없으면 POST 리다이렉트가 동작하지 않습니다!
+    amount:    payAmount,
+    goodsName: `코인 ${coinCount.toLocaleString()}개`,
 
+    // 인증 성공 시 즉시 승인 & 코인 충전 & 피드 이동 처리
     fnSuccess: async data => {
       try {
-        const res    = await fetch('/api/pay/approve', {
+        // 승인 API
+        const res = await fetch('/api/pay/approve', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ merchantUid: orderId, tid: data.tid })
@@ -37,7 +37,8 @@ export default function Payment() {
           return;
         }
 
-        const user    = auth.currentUser;
+        // Firestore 코인 업데이트
+        const user = auth.currentUser;
         if (user) {
           const userRef = doc(db, 'users', user.uid);
           const snap    = await getDoc(userRef);
@@ -53,8 +54,12 @@ export default function Payment() {
       }
     },
 
-    fnCancel: () => alert('결제를 취소했습니다.'),
-    fnError: err => alert('결제 오류: ' + (err.msg || JSON.stringify(err)))
+    fnCancel: () => {
+      alert('결제를 취소했습니다.');
+    },
+    fnError: err => {
+      alert('결제 오류: ' + (err.msg || JSON.stringify(err)));
+    }
   };
 
   const onPayClick = () => {
