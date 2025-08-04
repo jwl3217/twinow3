@@ -1,10 +1,10 @@
 // src/components/Payment.jsx
 
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { auth, db }               from '../firebaseConfig';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import backArrow                   from '../assets/back-arrow.png';
+import { useParams, useNavigate }      from 'react-router-dom';
+import { auth, db }                    from '../firebaseConfig';
+import { doc, getDoc, updateDoc }      from 'firebase/firestore';
+import backArrow                        from '../assets/back-arrow.png';
 import '../styles/Payment.css';
 
 export default function Payment() {
@@ -14,7 +14,6 @@ export default function Payment() {
   const priceMap  = {15000:4700,20000:12000,30000:20000,50000:35000};
   const payAmount = priceMap[coinCount] || 0; 
   const orderId   = `order_${Date.now()}`;
-  const returnUrl = `${window.location.origin}/payment/result`;
 
   const payOptions = {
     clientId:  'R2_e7af7dfe1d684817a588799dbceadc61',
@@ -22,12 +21,11 @@ export default function Payment() {
     orderId,
     amount:    payAmount,
     goodsName: `코인 ${coinCount.toLocaleString()}개`,
-    returnUrl,  // NICEPAY가 결제창 인증 이후 리다이렉트할 URL
-    
-    // 인증 성공 시 실제 승인 & 코인 충전 처리
+
+    // 인증 성공 시: 즉시 승인 API 호출 → DB 업데이트 → 피드 이동
     fnSuccess: async data => {
       try {
-        // 1) 서버 승인 API 호출
+        // 1) 승인 API 호출
         const res    = await fetch('/api/pay/approve', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -39,7 +37,7 @@ export default function Payment() {
           return;
         }
 
-        // 2) Firestore에서 코인 업데이트
+        // 2) 파이어스토어에 코인 업데이트
         const user    = auth.currentUser;
         if (user) {
           const userRef = doc(db, 'users', user.uid);
@@ -48,7 +46,7 @@ export default function Payment() {
           await updateDoc(userRef, { coins: prev + coinCount });
         }
 
-        // 3) 완료 안내 및 피드로 이동
+        // 3) 성공 안내 및 피드로 이동
         alert('결제 완료! 코인이 추가되었습니다.');
         navigate('/feed', { replace: true });
       } catch (e) {
@@ -57,12 +55,8 @@ export default function Payment() {
       }
     },
 
-    fnCancel: () => {
-      alert('결제를 취소했습니다.');
-    },
-    fnError: err => {
-      alert('결제 오류: ' + (err.msg || JSON.stringify(err)));
-    }
+    fnCancel: () => alert('결제를 취소했습니다.'),
+    fnError: err  => alert('결제 오류: ' + (err.msg || JSON.stringify(err)))
   };
 
   const onPayClick = () => {
