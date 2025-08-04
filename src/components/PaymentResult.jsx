@@ -24,14 +24,14 @@ export default function PaymentResult() {
         const res = await fetch('/api/pay/approve', {
           method:  'POST',
           headers: {'Content-Type':'application/json'},
-          body:    JSON.stringify({merchantUid, tid})
+          body:    JSON.stringify({ merchantUid, tid })
         });
         const result = await res.json();
         if (result.ok) {
           const userRef = doc(db, 'users', auth.currentUser.uid);
           const snap    = await getDoc(userRef);
           const prev    = snap.data()?.coins || 0;
-          await updateDoc(userRef, {coins: prev + coinCount});
+          await updateDoc(userRef, { coins: prev + coinCount });
           setStatus('결제 완료! 코인이 추가되었습니다.');
         } else {
           setStatus('결제 승인 실패: ' + result.error);
@@ -43,10 +43,10 @@ export default function PaymentResult() {
   }, [search]);
 
   return (
-    <div style={{ padding:20, textAlign:'center' }}>
+    <div style={{ padding: 20, textAlign: 'center' }}>
       <h2>{status}</h2>
-      <button onClick={() => navigate('/', {replace:true})}>
-        홈으로
+      <button onClick={() => navigate('/feed', { replace: true })}>
+        피드로
       </button>
     </div>
   );

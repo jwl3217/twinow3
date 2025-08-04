@@ -11,16 +11,18 @@ export default function Payment() {
   const priceMap   = {15000:4700,20000:12000,30000:20000,50000:35000};
   const payAmount  = priceMap[coinCount]||0;
   const orderId    = `order_${Date.now()}`;
+  const returnUrl  = `${window.location.origin}/payment/result`;
 
   const payOptions = {
-    clientId: 'R2_e7af7dfe1d684817a588799dbceadc61',
-    method: 'card',
+    clientId:   'R2_e7af7dfe1d684817a588799dbceadc61',
+    method:     'card',
     orderId,
-    amount: payAmount,
-    goodsName: `코인 ${coinCount.toLocaleString()}개`,
-    // redirect to PaymentResult with parameters
+    amount:     payAmount,
+    goodsName:  `코인 ${coinCount.toLocaleString()}개`,
+    returnUrl,                   // ← 반드시 포함
     fnSuccess: data => {
-      window.location.href = `/payment/result?merchantUid=${orderId}&tid=${data.tid}&amount=${coinCount}`;
+      // 인증 성공 후 자동 승인 처리 위해
+      window.location.href = `${returnUrl}?merchantUid=${orderId}&tid=${data.tid}&amount=${coinCount}`;
     },
     fnCancel: () => alert('결제를 취소했습니다.'),
     fnError: err => alert('결제 오류: ' + (err.msg||JSON.stringify(err)))
@@ -37,7 +39,7 @@ export default function Payment() {
   return (
     <div className="payment-container">
       <header className="detail-header">
-        <button className="back-button" onClick={() => window.history.back()}>
+        <button className="back-button" onClick={() => history.back()}>
           <img src={backArrow} alt="뒤로가기" />
         </button>
         <span className="header-title">결제하기</span>
