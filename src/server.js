@@ -16,15 +16,17 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use('/api/pay', payRouter);
 
 // 결제 결과 리턴 URL (POST)
-// NicePay가 POST로 보내는 필드명(merchant_uid, merchantUid, orderId)에 대응해서
-// React 라우터가 처리할 수 있는 쿼리스트링으로 리다이렉트합니다.
+// NicePay가 POST로 보내는 필드명(merchant_uid, merchantUid, orderId)을 모두 지원하여
+// React 라우터가 처리하는 GET 쿼리스트링으로 리다이렉트합니다.
 app.post('/payment/result', (req, res) => {
-  const merchantUid = req.body.merchant_uid || req.body.merchantUid || req.body.orderId;
-  const tid         = req.body.tid;
-  const amount      = req.body.amount || req.body.pay_amount || req.body.price;
+  const merchantUid = req.body.merchant_uid
+                   || req.body.merchantUid
+                   || req.body.orderId;
+  const tid    = req.body.tid;
+  const amount = req.body.amount;
 
+  // 필수 값이 없으면 에러 쿼리로 리다이렉트
   if (!merchantUid || !tid) {
-    // 정보가 부족하면 React 쪽에서 에러 처리
     return res.redirect('/payment/result?error=missing');
   }
 
@@ -35,7 +37,7 @@ app.post('/payment/result', (req, res) => {
 // React 빌드 결과물 서빙
 app.use(express.static(path.join(__dirname, 'build')));
 
-// SPA 라우팅: 나머지 GET 요청은 모두 index.html
+// 기타 모든 GET 요청도 index.html 로 포워딩
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
