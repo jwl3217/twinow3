@@ -78,7 +78,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 12px;
-  padding-bottom: 60px; /* 입력창 높이만큼 여백 확보 */
+  padding-bottom: 0px ; /* 입력창 높이만큼 여백 확보 */
   background-color: #fff;
 }
 
