@@ -207,7 +207,7 @@ export default function ChatRoom() {
   return (
     <div className="chatroom-container">
       <header className="chatroom-header">
-        <button onClick={() => navigate(-1)} className="back-btn">
+        <button onClick={() => navigate(-1)} className="back-btn back-button">
           <img src={backArrow} alt="뒤로가기" />
         </button>
         <img
@@ -247,13 +247,13 @@ export default function ChatRoom() {
 
         {otherLeft && (
           <div className="chatroom-exit">
-            상대가 채팅방을 나갔습니다
+            상대가 채팅방을 나갔습니다.
           </div>
         )}
 
         {theyBlockedMe && (
           <div className="chatroom-exit">
-            상대가 나를 차단했습니다
+            상대가 나를 차단했습니다.
           </div>
         )}
 
