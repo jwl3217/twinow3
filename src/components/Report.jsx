@@ -11,9 +11,14 @@ export default function Report() {
   const { id: reportedUid } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [type, setType] = useState('');        // 신고 유형 상태 추가
   const [text, setText] = useState('');
 
   const handleSubmit = async () => {
+    if (!type) {
+      alert('신고 유형을 선택해 주세요.');
+      return;
+    }
     if (!text.trim()) {
       alert('신고하실 내용을 입력해 주세요.');
       return;
@@ -22,6 +27,7 @@ export default function Report() {
       await addDoc(collection(db, 'reports'), {
         reporterUid: auth.currentUser.uid,
         reportedUid,
+        type,                                // DB에 유형 저장
         text: text.trim(),
         route: location.pathname,
         createdAt: serverTimestamp()
@@ -44,13 +50,27 @@ export default function Report() {
       </header>
       <div className="report-separator" />
       <div className="report-body">
+        <select
+          className="report-select"
+          value={type}
+          onChange={e => setType(e.target.value)}
+        >
+          <option value="">신고 유형 선택</option>
+          <option value="상업적 게시글">상업적 게시글</option>
+          <option value="도박/사행성">도박/사행성</option>
+          <option value="기타">기타</option>
+        </select>
         <textarea
           className="report-textarea"
           placeholder="신고하실 내용을 입력해 주세요"
           value={text}
           onChange={e => setText(e.target.value)}
         />
-        <button className="report-button" onClick={handleSubmit}>
+        <button
+          className="report-button"
+          onClick={handleSubmit}
+          disabled={!type || !text.trim()}
+        >
           신고하기
         </button>
       </div>
