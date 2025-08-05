@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate }            from 'react-router-dom';
-import { auth, db }                          from '../firebaseConfig';
+import { auth, db, storage }                 from '../firebaseConfig';
 import {
   collection,
   doc,
@@ -17,6 +17,7 @@ import {
   serverTimestamp,
   increment
 } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import defaultProfile from '../assets/default-profile.png';
 import backArrow      from '../assets/back-arrow.png';
 import threeDotsIcon  from '../assets/three-dots-icon.png';
@@ -30,6 +31,15 @@ export default function ChatRoom() {
   const navigate  = useNavigate();
   const me        = auth.currentUser?.uid;
 
+  // --- bottom-nav 숨김 처리를 위한 사이드 이펙트 ---
+  useEffect(() => {
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'none';
+    return () => {
+      if (bottomNav) bottomNav.style.display = '';
+    };
+  }, []);
+
   const [room,         setRoom]         = useState(null);
   const [otherUser,    setOtherUser]    = useState({});
   const [otherUid,     setOtherUid]     = useState(null);
@@ -40,6 +50,24 @@ export default function ChatRoom() {
   const [input,        setInput]        = useState('');
   const [imgModalSrc,  setImgModalSrc]  = useState(null);
   const bottomRef                       = useRef();
+
+  // 파일 첨부 ref & 핸들러
+  const fileInputRef = useRef(null);
+  const handleAttachClick = () => fileInputRef.current.click();
+  const handleFileChange = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const path = `chatRooms/${roomId}/${Date.now()}_${file.name}`;
+    const ref  = storageRef(storage, path);
+    await uploadBytes(ref, file);
+    const url  = await getDownloadURL(ref);
+    await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
+      imageUrl: url,
+      sender: me,
+      sentAt: serverTimestamp()
+    });
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // 내 차단 목록 로드
   useEffect(() => {
@@ -129,7 +157,6 @@ export default function ChatRoom() {
     return `${day}일 전`;
   };
 
-  // 실제 메시지 전송 함수
   const actuallySend = async () => {
     const txt = input.trim();
     if (!txt) return;
@@ -146,17 +173,11 @@ export default function ChatRoom() {
     });
   };
 
-  // 코인 사용 후 확인 시 실행
   const handleUseCoinConfirm = async () => {
-    // 1) 코인 차감
-    await updateDoc(doc(db, 'users', me), {
-      coins: increment(-100)
-    });
-    // 2) 방 잠금 해제
+    await updateDoc(doc(db, 'users', me), { coins: increment(-100) });
     await updateDoc(doc(db, 'chatRooms', roomId), {
       [`unlocked.${me}`]: true
     });
-    // 3) 모달 닫고 전송
     setModalType(null);
     actuallySend();
   };
@@ -240,23 +261,25 @@ export default function ChatRoom() {
             key={msg.id}
             className={`msg-item ${msg.sender === me ? 'me' : 'other'}`}
           >
-            <p className="msg-text">{msg.text}</p>
+            {msg.imageUrl && (
+              <img
+                src={msg.imageUrl}
+                alt="첨부"
+                style={{ maxWidth: '200px', borderRadius: '8px' }}
+                onClick={() => setImgModalSrc(msg.imageUrl)}
+              />
+            )}
+            {msg.text && <p className="msg-text">{msg.text}</p>}
             <span className="msg-time">{formatRelativeTime(msg.sentAt)}</span>
           </div>
         ))}
 
         {otherLeft && (
-          <div className="chatroom-exit">
-            상대가 채팅방을 나갔습니다.
-          </div>
+          <div className="chatroom-exit">상대가 채팅방을 나갔습니다.</div>
         )}
-
         {theyBlockedMe && (
-          <div className="chatroom-exit">
-            상대가 나를 차단했습니다.
-          </div>
+          <div className="chatroom-exit">상대가 나를 차단했습니다.</div>
         )}
-
         <div ref={bottomRef} />
       </div>
 
@@ -267,6 +290,16 @@ export default function ChatRoom() {
       ) : (
         <>
           <div className="chatroom-input-wrap">
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+            <button className="attach-btn" onClick={handleAttachClick}>
+              +
+            </button>
             <input
               className="chatroom-input"
               placeholder="메시지를 입력하세요..."
