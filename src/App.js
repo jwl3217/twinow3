@@ -32,7 +32,7 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdmin, setIsAdmin]         = useState(false);
 
-  // 로그인 상태 + admin claim
+  // 로그인 상태 + admin claim 체크
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async u => {
       setUser(u);
@@ -78,7 +78,7 @@ export default function App() {
           <Route path="/chat/:roomId"    element={<ChatRoom />} />
           <Route path="/shop"            element={<Shop />} />
 
-          {/* --- 여기에 무통장 결제 페이지 라우트 추가 --- */}
+          {/* 무통장 결제 페이지 */}
           <Route path="/payment/:amount" element={<Payment />} />
 
           <Route path="/payment/result"  element={<PaymentResult />} />

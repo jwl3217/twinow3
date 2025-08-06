@@ -22,13 +22,13 @@ export default function Payment() {
       try {
         const { data } = await createPayment({ amount: Number(amount) });
         setOrderId(data.orderId);
-        // *은행과 계좌번호는 고정*
+        // 은행·계좌번호 고정, 나머지는 응답에서
         setBankInfo({
-          bank: '하나은행',
+          bank:           '하나은행',
           account_number: '31191046973307',
           account_holder: data.bankInfo.account_holder,
-          expires_at:      data.bankInfo.expires_at,
-          amount:          Number(amount)
+          expires_at:     data.bankInfo.expires_at,
+          amount:         Number(amount)
         });
       } catch (e) {
         console.error(e);
