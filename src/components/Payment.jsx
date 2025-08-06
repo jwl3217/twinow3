@@ -1,105 +1,79 @@
 // src/components/Payment.jsx
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate }      from 'react-router-dom';
-import { auth, db }                    from '../firebaseConfig';
-import { doc, getDoc, updateDoc }      from 'firebase/firestore';
-import backArrow                        from '../assets/back-arrow.png';
+import { httpsCallable }                from 'firebase/functions';
+import { functions }                   from '../firebaseConfig';
 import '../styles/Payment.css';
 
 export default function Payment() {
-  const { amount } = useParams();
-  const navigate  = useNavigate();
-  const coinCount = Number(amount);
-  const priceMap  = {15000:4700,20000:12000,30000:20000,50000:35000};
-  const payAmount = priceMap[coinCount] || 0;
+  const { amount }   = useParams();           // URL param: 구매할 코인 개수
+  const navigate     = useNavigate();
+  const [orderId, setOrderId]     = useState(null);
+  const [bankInfo, setBankInfo]   = useState(null);
+  const [checking, setChecking]   = useState(false);
 
-  // ★ 반드시 merchantUid로 넘겨야 fnSuccess가 실행됩니다
-  const merchantUid = `order_${Date.now()}`;
+  // 1) 컴포넌트 마운트 시 결제 주문 생성 호출
+  useEffect(() => {
+    const create = httpsCallable(functions, 'createPayment');
+    create({ amount: Number(amount) })
+      .then(({ data }) => {
+        setOrderId(data.orderId);
+        setBankInfo(data.bankInfo);
+      })
+      .catch(err => {
+        console.error(err);
+        alert('결제 주문 생성에 실패했습니다: ' + err.message);
+      });
+  }, [amount]);
 
-  const payOptions = {
-    clientId:    'R2_e7af7dfe1d684817a588799dbceadc61',
-    method:      'card',
-    merchantUid,               // ← 여기 key 이름 꼭 지켜주세요
-    amount:      payAmount,
-    goodsName:   `코인 ${coinCount.toLocaleString()}개`,
-    popup:       true,         // 팝업 모드
-
-    fnSuccess: async ({ merchant_uid, tid }) => {
-      try {
-        // 1) 승인 API 호출
-        const res = await fetch('/api/pay/approve', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            merchantUid: merchant_uid, 
-            tid
-          })
-        });
-        const { ok, error } = await res.json();
-        if (!ok) {
-          alert('결제 승인 실패: ' + error);
-          return;
-        }
-
-        // 2) Firestore 코인 업데이트
-        const user = auth.currentUser;
-        if (user) {
-          const userRef = doc(db, 'users', user.uid);
-          const snap    = await getDoc(userRef);
-          const prev    = snap.data()?.coins || 0;
-          await updateDoc(userRef, { coins: prev + coinCount });
-        }
-
-        // 3) 완료 안내 및 피드 이동
-        alert('결제 완료! 코인이 추가되었습니다.');
-        navigate('/feed', { replace: true });
-      } catch (e) {
-        console.error(e);
-        alert('결제 처리 중 오류가 발생했습니다.');
+  // 2) 입금 확인 버튼
+  const checkPayment = async () => {
+    if (!orderId) return;
+    setChecking(true);
+    try {
+      const snap = await import('firebase/firestore').then(({ doc, getDoc }) =>
+        getDoc(doc(functions.firestore, 'payments', orderId))
+      );
+      const payment = snap.data();
+      if (payment?.status === 'completed') {
+        alert('입금이 확인되었습니다!');
+        navigate('/feed');
+      } else {
+        alert('아직 입금이 확인되지 않았습니다.');
       }
-    },
-
-    fnCancel: () => alert('결제를 취소했습니다.'),
-    fnError:   err => alert('결제 오류: ' + (err.msg||JSON.stringify(err))),
-  };
-
-  const onPayClick = () => {
-    if (!window.AUTHNICE?.requestPay) {
-      alert('결제 모듈 준비 중입니다. 잠시 후 다시 시도해주세요.');
-      return;
+    } catch (e) {
+      console.error(e);
+      alert('결제 상태 확인 중 오류가 발생했습니다.');
     }
-    window.AUTHNICE.requestPay(payOptions);
+    setChecking(false);
   };
+
+  if (!bankInfo) {
+    return <div>결제 정보를 불러오는 중...</div>;
+  }
 
   return (
     <div className="payment-container">
-      <header className="detail-header">
-        <button
-          type="button"
-          className="back-button"
-          onClick={() => navigate(-1)}
-        >
-          <img src={backArrow} alt="뒤로가기" />
-        </button>
-        <span className="header-title">결제하기</span>
-      </header>
+      <h2>무통장 입금 안내</h2>
+      <p>
+        아래 계좌로 <strong>{bankInfo.amount.toLocaleString()}원</strong>을<br/>
+        입금해 주세요.
+      </p>
+      <ul className="bank-info">
+        <li>은행: {bankInfo.bank}</li>
+        <li>계좌번호: {bankInfo.account_number}</li>
+        <li>예금주: {bankInfo.account_holder}</li>
+        <li>입금 기한: {new Date(bankInfo.expires_at).toLocaleString()}</li>
+      </ul>
 
-      <div className="detail-separator" />
-
-      <div className="detail-body">
-        <div className="payment-info">
-          <p>코인 {coinCount.toLocaleString()}개 구매</p>
-          <p>총 결제 금액: {payAmount.toLocaleString()}원</p>
-        </div>
-        <button
-          type="button"
-          className="pay-button"
-          onClick={onPayClick}
-        >
-          결제하기
-        </button>
-      </div>
+      <button
+        className="confirm-button"
+        onClick={checkPayment}
+        disabled={checking}
+      >
+        {checking ? '확인 중...' : '입금 확인'}
+      </button>
     </div>
   );
 }

@@ -2,6 +2,9 @@
 
 const functions = require('firebase-functions');
 const admin     = require('firebase-admin');
+const express   = require('express');
+const cors      = require('cors');
+const axios     = require('axios');
 
 admin.initializeApp();
 
@@ -62,3 +65,60 @@ exports.createCustomToken = functions.https.onCall(async (data, context) => {
   const token = await admin.auth().createCustomToken(uid);
   return { token };
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4) PayAction 결제 API + Webhook (Express 앱)
+// ─────────────────────────────────────────────────────────────────────────────
+const app = express();
+app.use(cors({ origin: true }));
+app.use(express.json());
+
+const API_KEY     = functions.config().payaction.api;
+const WEBHOOK_KEY = functions.config().payaction.webhook;
+const STORE_KEY   = functions.config().payaction.store;
+
+// 결제 생성 (functions/index.js 에서)
+app.post('/createPayment', async (req, res) => {
+  const { amount, orderId } = req.body;
+  if (!amount || !orderId) {
+    return res.status(400).json({ error: 'amount와 orderId를 모두 전달해야 합니다' });
+  }
+  try {
+    const resp = await axios.post(
+      'https://api.payaction.io/v1/payments',
+      { store_key: STORE_KEY, amount, order_id: orderId },
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10_000
+      }
+    );
+    return res.json({ paymentUrl: resp.data.payment_url });
+  } catch (err) {
+    // 에러 출력 강화
+    console.error('❌ PayAction 결제 생성 오류 status=', err.response?.status);
+    console.error('❌ PayAction error.data=', err.response?.data);
+    console.error('❌ PayAction error.message=', err.message);
+    return res.status(500).json({
+      error: 'internal',
+      details: err.response?.data || err.message
+    });
+  }
+});
+
+
+// Webhook 수신
+app.post('/webhook', (req, res) => {
+  const signature = req.headers['x-payaction-signature'];
+  if (signature !== WEBHOOK_KEY) {
+    console.error('Invalid webhook signature:', signature);
+    return res.status(400).send('Invalid signature');
+  }
+  console.log('✅ PayAction Webhook 수신:', req.body);
+  // TODO: 이벤트에 따라 Firestore 업데이트 등 처리
+  return res.status(200).send('OK');
+});
+
+exports.payaction = functions.https.onRequest(app);
