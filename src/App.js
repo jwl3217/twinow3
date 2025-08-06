@@ -1,5 +1,4 @@
 // src/App.js
-
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate }    from 'react-router-dom';
 import { onAuthStateChanged }         from 'firebase/auth';
@@ -78,7 +77,10 @@ export default function App() {
           <Route path="/messages"        element={<MessageList />} />
           <Route path="/chat/:roomId"    element={<ChatRoom />} />
           <Route path="/shop"            element={<Shop />} />
+
+          {/* --- 여기에 무통장 결제 페이지 라우트 추가 --- */}
           <Route path="/payment/:amount" element={<Payment />} />
+
           <Route path="/payment/result"  element={<PaymentResult />} />
           <Route path="/profile"         element={<Profile />} />
           <Route path="/profile/edit"    element={<EditProfile />} />
@@ -103,15 +105,11 @@ export default function App() {
             }
           />
           {/* 계정 전환 대시보드는 공개 */}
-          <Route
-            path="/admin/switch"
-            element={<AccountSwitchDashboard />}
-          />
+          <Route path="/admin/switch" element={<AccountSwitchDashboard />} />
 
           <Route path="*" element={<Navigate to="/feed" replace />} />
         </Routes>
       </div>
-
       <BottomNav unreadCount={unreadCount} currentUser={user} />
     </>
   );

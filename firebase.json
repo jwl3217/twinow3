@@ -1,3 +1,4 @@
+
 {
   "functions": [
     {
@@ -20,6 +21,18 @@
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/createPayment",
+        "function": "payaction"
+      },
+      {
+        "source": "/payments/**",
+        "function": "payaction"
+      },
+      {
+        "source": "/webhook",
+        "function": "payaction"
+      },
       {
         "source": "**",
         "destination": "/index.html"

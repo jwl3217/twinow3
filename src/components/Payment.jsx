@@ -1,43 +1,46 @@
 // src/components/Payment.jsx
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate }      from 'react-router-dom';
-import { httpsCallable }                from 'firebase/functions';
-import { functions }                   from '../firebaseConfig';
 import '../styles/Payment.css';
 
 export default function Payment() {
   const { amount }   = useParams();           // URL param: 구매할 코인 개수
   const navigate     = useNavigate();
-  const [orderId, setOrderId]     = useState(null);
-  const [bankInfo, setBankInfo]   = useState(null);
-  const [checking, setChecking]   = useState(false);
+  const [orderId, setOrderId]   = useState(null);
+  const [bankInfo, setBankInfo] = useState(null);
+  const [checking, setChecking] = useState(false);
 
-  // 1) 컴포넌트 마운트 시 결제 주문 생성 호출
+  // 1) 컴포넌트 마운트 시 결제 주문 생성 요청
   useEffect(() => {
-    const create = httpsCallable(functions, 'createPayment');
-    create({ amount: Number(amount) })
-      .then(({ data }) => {
-        setOrderId(data.orderId);
-        setBankInfo(data.bankInfo);
-      })
-      .catch(err => {
-        console.error(err);
-        alert('결제 주문 생성에 실패했습니다: ' + err.message);
-      });
+    const initPayment = async () => {
+      try {
+        const generatedOrderId = `order_${Date.now()}`;
+        const resp = await fetch('/createPayment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: Number(amount), orderId: generatedOrderId })
+        });
+        if (!resp.ok) throw new Error('주문 생성 실패');
+        const { orderId: oid, bankInfo: info } = await resp.json();
+        setOrderId(oid);
+        setBankInfo(info);
+      } catch (e) {
+        console.error(e);
+        alert('결제 주문 생성에 실패했습니다.\n' + e.message);
+      }
+    };
+    initPayment();
   }, [amount]);
 
-  // 2) 입금 확인 버튼
+  // 2) 입금 확인 버튼 클릭
   const checkPayment = async () => {
     if (!orderId) return;
     setChecking(true);
     try {
-      const snap = await import('firebase/firestore').then(({ doc, getDoc }) =>
-        getDoc(doc(functions.firestore, 'payments', orderId))
-      );
-      const payment = snap.data();
-      if (payment?.status === 'completed') {
-        alert('입금이 확인되었습니다!');
+      const docResp = await fetch(`/payments/${orderId}`);
+      const payment = await docResp.json();
+      if (payment.status === 'completed') {
+        alert('입금이 확인되었습니다! 코인이 충전됩니다.');
         navigate('/feed');
       } else {
         alert('아직 입금이 확인되지 않았습니다.');
@@ -50,7 +53,7 @@ export default function Payment() {
   };
 
   if (!bankInfo) {
-    return <div>결제 정보를 불러오는 중...</div>;
+    return <div className="payment-container">결제 정보를 불러오는 중...</div>;
   }
 
   return (
