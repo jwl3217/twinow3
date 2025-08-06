@@ -1,6 +1,7 @@
 // src/components/Payment.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate }      from 'react-router-dom';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import '../styles/Payment.css';
 
 export default function Payment() {
@@ -10,36 +11,33 @@ export default function Payment() {
   const [bankInfo, setBankInfo] = useState(null);
   const [checking, setChecking] = useState(false);
 
+  // Firebase Functions 인스턴스 & Callable 함수
+  const functions    = getFunctions();
+  const createPayment = httpsCallable(functions, 'createPayment');
+  const getStatus     = httpsCallable(functions, 'getPaymentStatus');
+
   // 1) 컴포넌트 마운트 시 결제 주문 생성 요청
   useEffect(() => {
     const initPayment = async () => {
       try {
-        const generatedOrderId = `order_${Date.now()}`;
-        const resp = await fetch('/createPayment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: Number(amount), orderId: generatedOrderId })
-        });
-        if (!resp.ok) throw new Error('주문 생성 실패');
-        const { orderId: oid, bankInfo: info } = await resp.json();
-        setOrderId(oid);
-        setBankInfo(info);
+        const { data } = await createPayment({ amount: Number(amount) });
+        setOrderId(data.orderId);
+        setBankInfo({ ...data.bankInfo, amount: Number(amount) });
       } catch (e) {
         console.error(e);
         alert('결제 주문 생성에 실패했습니다.\n' + e.message);
       }
     };
     initPayment();
-  }, [amount]);
+  }, [amount, createPayment]);
 
   // 2) 입금 확인 버튼 클릭
   const checkPayment = async () => {
     if (!orderId) return;
     setChecking(true);
     try {
-      const docResp = await fetch(`/payments/${orderId}`);
-      const payment = await docResp.json();
-      if (payment.status === 'completed') {
+      const { data } = await getStatus({ orderId });
+      if (data.status === 'completed') {
         alert('입금이 확인되었습니다! 코인이 충전됩니다.');
         navigate('/feed');
       } else {
