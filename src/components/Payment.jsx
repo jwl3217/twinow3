@@ -5,7 +5,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import '../styles/Payment.css';
 
 export default function Payment() {
-  const { amount }   = useParams();   // URL param: 구매할 코인 개수
+  const { amount }   = useParams();           // URL param: 구매할 코인 개수
   const navigate     = useNavigate();
   const [orderId, setOrderId]   = useState(null);
   const [bankInfo, setBankInfo] = useState(null);
@@ -22,7 +22,7 @@ export default function Payment() {
       try {
         const { data } = await createPayment({ amount: Number(amount) });
         setOrderId(data.orderId);
-        // *은행과 계좌번호는 고정*
+        // 은행·계좌번호는 고정
         setBankInfo({
           bank: '하나은행',
           account_number: '31191046973307',
@@ -36,7 +36,7 @@ export default function Payment() {
       }
     };
     initPayment();
-  }, [amount]);
+  }, [amount, createPayment]);
 
   // 2) 입금 확인 버튼 클릭
   const checkPayment = async () => {
@@ -74,6 +74,7 @@ export default function Payment() {
         <li>예금주: {bankInfo.account_holder}</li>
         <li>입금 기한: {new Date(bankInfo.expires_at).toLocaleString()}</li>
       </ul>
+
       <button
         className="confirm-button"
         onClick={checkPayment}
