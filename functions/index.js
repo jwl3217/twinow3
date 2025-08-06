@@ -2,26 +2,20 @@
 const functions = require('firebase-functions');
 const admin     = require('firebase-admin');
 const axios     = require('axios');
+const cors      = require('cors')({ origin: true });
 
 admin.initializeApp();
 
-////////////////////////////////////////////////////////////////////////////////
-// Cloud Run 에 환경변수로 주입된 Secret 이름
-const secretOpts = {
-  secrets: [
-    'PAYACTION_API',
-    'PAYACTION_STORE',
-    'PAYACTION_WEBHOOK'
-  ]
-};
+// 환경변수 (firebase functions:config:set 으로 세팅한 값)
+const API_KEY     = functions.config().payaction.api;
+const STORE_KEY   = functions.config().payaction.store;
+const WEBHOOK_KEY = functions.config().payaction.webhook;
 
-// Firestore 에 저장할 컬렉션 이름
 const PAY_COLLECTION = 'payments';
 
-////////////////////////////////////////////////////////////////////////////////
 // 1) 관리자 전용: 계정 생성
 exports.createUser = functions
-  .runWith(secretOpts)
+  .region('us-central1')
   .https.onCall(async (data, context) => {
     if (!context.auth || !context.auth.token.admin) {
       throw new functions.https.HttpsError('permission-denied', '관리자만 사용 가능합니다');
@@ -34,10 +28,9 @@ exports.createUser = functions
     return { uid: userRecord.uid };
   });
 
-////////////////////////////////////////////////////////////////////////////////
 // 2) 관리자 전용: 계정 삭제
 exports.deleteUser = functions
-  .runWith(secretOpts)
+  .region('us-central1')
   .https.onCall(async (data, context) => {
     if (!context.auth || !context.auth.token.admin) {
       throw new functions.https.HttpsError('permission-denied', '관리자만 사용 가능합니다');
@@ -50,10 +43,9 @@ exports.deleteUser = functions
     return { success: true };
   });
 
-////////////////////////////////////////////////////////////////////////////////
 // 3) 관리자 전환용: 커스텀 토큰 생성
 exports.createCustomToken = functions
-  .runWith(secretOpts)
+  .region('us-central1')
   .https.onCall(async (data) => {
     const { uid } = data;
     if (!uid) {
@@ -63,10 +55,9 @@ exports.createCustomToken = functions
     return { token };
   });
 
-////////////////////////////////////////////////////////////////////////////////
 // 4) 주문 생성 (Callable)
 exports.createPayment = functions
-  .runWith(secretOpts)
+  .region('us-central1')
   .https.onCall(async (data) => {
     const { amount } = data;
     if (typeof amount !== 'number' || amount <= 0) {
@@ -81,8 +72,8 @@ exports.createPayment = functions
         {
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': process.env.PAYACTION_API,
-            'x-mall-id': process.env.PAYACTION_STORE
+            'x-api-key': API_KEY,
+            'x-mall-id': STORE_KEY
           },
           timeout: 10000
         }
@@ -108,10 +99,9 @@ exports.createPayment = functions
     }
   });
 
-////////////////////////////////////////////////////////////////////////////////
 // 5) 결제 상태 조회 (Callable)
 exports.getPaymentStatus = functions
-  .runWith(secretOpts)
+  .region('us-central1')
   .https.onCall(async (data) => {
     const { orderId } = data;
     if (!orderId) {
@@ -124,22 +114,23 @@ exports.getPaymentStatus = functions
     return { status: doc.data().status };
   });
 
-////////////////////////////////////////////////////////////////////////////////
-// 6) PayAction Webhook 수신 (HTTP)
+// 6) PayAction Webhook 수신 (HTTP + CORS)
 exports.webhook = functions
-  .runWith(secretOpts)
-  .https.onRequest(async (req, res) => {
-    if (req.get('x-webhook-key') !== process.env.PAYACTION_WEBHOOK
-        || req.get('x-mall-id') !== process.env.PAYACTION_STORE) {
-      console.error('Invalid PayAction Webhook:', req.headers);
-      return res.status(403).send('Forbidden');
-    }
-    const { type, orderId, status } = req.body;
-    if (type === 'order' && status === 'matched') {
-      await admin.firestore().collection(PAY_COLLECTION).doc(orderId).update({
-        status: 'completed',
-        matchedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    }
-    res.json({ status: 'success' });
+  .region('us-central1')
+  .https.onRequest((req, res) => {
+    cors(req, res, async () => {
+      if (req.get('x-webhook-key') !== WEBHOOK_KEY
+          || req.get('x-mall-id') !== STORE_KEY) {
+        console.error('Invalid PayAction Webhook:', req.headers);
+        return res.status(403).send('Forbidden');
+      }
+      const { type, orderId, status } = req.body;
+      if (type === 'order' && status === 'matched') {
+        await admin.firestore().collection(PAY_COLLECTION).doc(orderId).update({
+          status: 'completed',
+          matchedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      res.json({ status: 'success' });
+    });
   });
