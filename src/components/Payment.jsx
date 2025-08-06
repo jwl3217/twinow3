@@ -12,7 +12,7 @@ export default function Payment() {
   const [checking, setChecking] = useState(false);
 
   // Firebase Functions 인스턴스 & Callable 함수
-  const functions    = getFunctions();
+  const functions     = getFunctions();
   const createPayment = httpsCallable(functions, 'createPayment');
   const getStatus     = httpsCallable(functions, 'getPaymentStatus');
 
@@ -22,7 +22,14 @@ export default function Payment() {
       try {
         const { data } = await createPayment({ amount: Number(amount) });
         setOrderId(data.orderId);
-        setBankInfo({ ...data.bankInfo, amount: Number(amount) });
+        // *은행과 계좌번호는 고정*
+        setBankInfo({
+          bank: '하나은행',
+          account_number: '31191046973307',
+          account_holder: data.bankInfo.account_holder,
+          expires_at:      data.bankInfo.expires_at,
+          amount:          Number(amount)
+        });
       } catch (e) {
         console.error(e);
         alert('결제 주문 생성에 실패했습니다.\n' + e.message);
