@@ -1,28 +1,29 @@
-// functions/index.js
-
 const functions = require('firebase-functions');
 const admin     = require('firebase-admin');
 const express   = require('express');
 const cors      = require('cors');
+const fetch     = require('node-fetch');
 
 admin.initializeApp();
 
 const app = express();
-
-// CORS & JSON body 파싱
+// CORS & JSON parsing
 app.use(cors({ origin: true }));
 app.use(express.json());
+
+// health-check
+app.get('/', (req, res) => res.status(200).send('OK'));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1) 관리자 전용: 계정 생성 (https callable)
 // ─────────────────────────────────────────────────────────────────────────────
 exports.createUser = functions.https.onCall(async (data, context) => {
   if (!context.auth || context.auth.token.admin !== true) {
-    throw new functions.https.HttpsError('permission-denied','관리자만 사용 가능합니다');
+    throw new functions.https.HttpsError('permission-denied', '관리자만 사용 가능합니다');
   }
   const { email, password } = data;
   if (!email || !password) {
-    throw new functions.https.HttpsError('invalid-argument','이메일과 비밀번호를 모두 전달해야 합니다');
+    throw new functions.https.HttpsError('invalid-argument', '이메일과 비밀번호를 모두 전달해야 합니다');
   }
   const userRecord = await admin.auth().createUser({ email, password });
   return { uid: userRecord.uid };
@@ -33,11 +34,11 @@ exports.createUser = functions.https.onCall(async (data, context) => {
 // ─────────────────────────────────────────────────────────────────────────────
 exports.deleteUser = functions.https.onCall(async (data, context) => {
   if (!context.auth || context.auth.token.admin !== true) {
-    throw new functions.https.HttpsError('permission-denied','관리자만 사용 가능합니다');
+    throw new functions.https.HttpsError('permission-denied', '관리자만 사용 가능합니다');
   }
   const { uid } = data;
   if (!uid) {
-    throw new functions.https.HttpsError('invalid-argument','삭제할 UID를 전달해야 합니다');
+    throw new functions.https.HttpsError('invalid-argument', '삭제할 UID를 전달해야 합니다');
   }
   await admin.auth().deleteUser(uid);
   return { success: true };
@@ -49,7 +50,7 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
 exports.createCustomToken = functions.https.onCall(async (data) => {
   const { uid } = data;
   if (!uid) {
-    throw new functions.https.HttpsError('invalid-argument','uid를 전달해주세요');
+    throw new functions.https.HttpsError('invalid-argument', 'uid를 전달해주세요');
   }
   const token = await admin.auth().createCustomToken(uid);
   return { token };
@@ -63,7 +64,6 @@ app.post('/pay/approve', async (req, res) => {
   if (!merchantUid || !tid) {
     return res.status(400).json({ ok: false, error: 'merchantUid, tid 필수' });
   }
-  const fetch = require('node-fetch');
   const CLIENT_KEY = 'R2_e7af7dfe1d684817a588799dbceadc61';
   const SECRET_KEY = '23ce497b37ac441487651f3a2e5d9f58';
   const authHeader = 'Basic ' + Buffer.from(`${CLIENT_KEY}:${SECRET_KEY}`).toString('base64');
@@ -79,7 +79,6 @@ app.post('/pay/approve', async (req, res) => {
     });
     const data = await apiRes.json();
     if (data.resultCode === '3001') {
-      // TODO: DB 업데이트 등 필요한 로직
       return res.json({ ok: true });
     } else {
       return res.json({ ok: false, error: data.resultMsg });
@@ -91,18 +90,15 @@ app.post('/pay/approve', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5) 결제 주문 생성 & 내 계좌정보 응답 (createPayment)
+// 5) 라우터 분리: createPayment, payactionWebhook
 // ─────────────────────────────────────────────────────────────────────────────
-const createPaymentRouter = require('./routes/createPayment');
-app.use(createPaymentRouter);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 6) 무통장(Webhook) 처리 (PayAction)
-// ─────────────────────────────────────────────────────────────────────────────
+const createPaymentRouter    = require('./routes/createPayment');
 const payactionWebhookRouter = require('./routes/payactionWebhook');
+
+app.use(createPaymentRouter);
 app.use(payactionWebhookRouter);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 7) Express 앱을 Cloud Functions HTTP로 노출
+// 6) Express 앱을 Cloud Functions HTTP로 노출
 // ─────────────────────────────────────────────────────────────────────────────
 exports.api = functions.https.onRequest(app);

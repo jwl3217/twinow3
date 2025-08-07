@@ -1,5 +1,3 @@
-// src/App.js
-
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate }    from 'react-router-dom';
 import { onAuthStateChanged }         from 'firebase/auth';
@@ -16,7 +14,6 @@ import MessageList            from './components/MessageList';
 import ChatRoom               from './components/ChatRoom';
 import Shop                   from './components/Shop';
 import Payment                from './components/Payment';
-// import PaymentResult        from './components/PaymentResult';  // 삭제
 import Profile                from './components/Profile';
 import EditProfile            from './components/EditProfile';
 import Withdraw               from './components/Withdraw';
@@ -81,8 +78,6 @@ export default function App() {
 
           {/* 무통장 입금(PayAction) 페이지 */}
           <Route path="/payment/:amount" element={<Payment />} />
-
-          {/* 더 이상 PaymentResult 경로 없음 */}
 
           <Route path="/profile"       element={<Profile />} />
           <Route path="/profile/edit"  element={<EditProfile />} />

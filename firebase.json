@@ -3,7 +3,7 @@
     {
       "codebase": "default",           
       "source": "functions",
-      "runtime": "nodejs18",
+      "runtime": "nodejs20",
       "platform": "gcfv1"        
     }
   ],
