@@ -1,3 +1,5 @@
+// functions/index.js
+
 const functions = require('firebase-functions');
 const admin     = require('firebase-admin');
 const express   = require('express');
@@ -95,7 +97,9 @@ app.post('/pay/approve', async (req, res) => {
 const createPaymentRouter    = require('./routes/createPayment');
 const payactionWebhookRouter = require('./routes/payactionWebhook');
 
+// createPayment는 /api 하위로
 app.use('/api', createPaymentRouter);
+// payactionWebhook은 루트(/webhook/payaction)로
 app.use(payactionWebhookRouter);
 
 // ─────────────────────────────────────────────────────────────────────────────
