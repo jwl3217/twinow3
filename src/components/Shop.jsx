@@ -1,9 +1,7 @@
-// src/components/Shop.jsx
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import coinImg from '../assets/coin.png';
-import backArrow from '../assets/back-arrow.png';
+import coinImg     from '../assets/coin.png';
+import backArrow   from '../assets/back-arrow.png';
 import '../styles/Shop.css';
 
 export default function Shop() {
@@ -18,7 +16,6 @@ export default function Shop() {
 
   return (
     <div className="shop-container">
-      {/* 1) 고정 헤더 */}
       <header className="shop-header">
         <button className="back-button" onClick={() => navigate(-1)}>
           <img src={backArrow} alt="뒤로가기" />
@@ -26,10 +23,8 @@ export default function Shop() {
         <span className="header-title">코인 구매</span>
       </header>
 
-      {/* 2) 분리선 */}
       <div className="shop-separator" />
 
-      {/* 3) 본문 스크롤 영역 */}
       <div className="shop-body">
         {options.map(({ coins, price }) => (
           <div key={coins} className="shop-card">
@@ -51,7 +46,6 @@ export default function Shop() {
 
         {selAmount !== null && (
           <>
-            {/* 배경 오버레이 (클릭 시 모달 닫기) */}
             <div
               className="modal-overlay"
               onClick={() => setSelAmount(null)}
@@ -66,7 +60,6 @@ export default function Shop() {
               }}
             />
 
-            {/* 확인 모달 */}
             <div
               className="confirm-modal"
               style={{
@@ -79,7 +72,7 @@ export default function Shop() {
             >
               <p>코인 {selAmount.toLocaleString()}개를 구매하시겠습니까?</p>
               <div className="confirm-buttons">
-                <button onClick={() => navigate(`/payment/${selAmount}`)}>
+                <button onClick={() => navigate(`/enter-depositor/${selAmount}`)}>
                   네
                 </button>
                 <button onClick={() => setSelAmount(null)}>

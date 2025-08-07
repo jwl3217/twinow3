@@ -13,6 +13,7 @@ import EditPost               from './components/EditPost';
 import MessageList            from './components/MessageList';
 import ChatRoom               from './components/ChatRoom';
 import Shop                   from './components/Shop';
+import EnterDepositor         from './components/EnterDepositor';  // ← 추가
 import Payment                from './components/Payment';
 import Profile                from './components/Profile';
 import EditProfile            from './components/EditProfile';
@@ -30,7 +31,6 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdmin, setIsAdmin]         = useState(false);
 
-  // 로그인 상태 + admin claim 체크
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async u => {
       setUser(u);
@@ -44,7 +44,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // unread 카운트 실시간 업데이트
   useEffect(() => {
     if (!user) return;
     const roomsQ = query(
@@ -66,23 +65,26 @@ export default function App() {
     <>
       <div style={{ paddingBottom: 80 }}>
         <Routes>
-          <Route path="/"              element={<Home />} />
-          <Route path="/signup"        element={<SignUp />} />
-          <Route path="/feed"          element={<Feed />} />
-          <Route path="/post/new"      element={<PostCreate />} />
-          <Route path="/post/:id"      element={<PostDetail />} />
-          <Route path="/post/:id/edit" element={<EditPost />} />
-          <Route path="/messages"      element={<MessageList />} />
-          <Route path="/chat/:roomId"  element={<ChatRoom />} />
-          <Route path="/shop"          element={<Shop />} />
+          <Route path="/"                element={<Home />} />
+          <Route path="/signup"          element={<SignUp />} />
+          <Route path="/feed"            element={<Feed />} />
+          <Route path="/post/new"        element={<PostCreate />} />
+          <Route path="/post/:id"        element={<PostDetail />} />
+          <Route path="/post/:id/edit"   element={<EditPost />} />
+          <Route path="/messages"        element={<MessageList />} />
+          <Route path="/chat/:roomId"    element={<ChatRoom />} />
+          <Route path="/shop"            element={<Shop />} />
 
-          {/* 무통장 입금(PayAction) 페이지 */}
+          {/* 입금자명 입력 페이지 */}
+          <Route path="/enter-depositor/:amount" element={<EnterDepositor />} />
+
+          {/* 결제 페이지 */}
           <Route path="/payment/:amount" element={<Payment />} />
 
-          <Route path="/profile"       element={<Profile />} />
-          <Route path="/profile/edit"  element={<EditProfile />} />
-          <Route path="/withdraw"      element={<Withdraw />} />
-          <Route path="/report/:id"    element={<Report />} />
+          <Route path="/profile"         element={<Profile />} />
+          <Route path="/profile/edit"    element={<EditProfile />} />
+          <Route path="/withdraw"        element={<Withdraw />} />
+          <Route path="/report/:id"      element={<Report />} />
 
           {/* 관리자 전용 */}
           <Route
@@ -101,7 +103,6 @@ export default function App() {
               </ProtectedAdminRoute>
             }
           />
-          {/* 계정 전환 대시보드는 공개 */}
           <Route path="/admin/switch" element={<AccountSwitchDashboard />} />
 
           <Route path="*" element={<Navigate to="/feed" replace />} />
