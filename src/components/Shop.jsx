@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import coinImg   from '../assets/coin.png';
+import coinImg from '../assets/coin.png';
 import backArrow from '../assets/back-arrow.png';
 import '../styles/Shop.css';
 
@@ -16,18 +16,13 @@ export default function Shop() {
 
   return (
     <div className="shop-container">
-      {/* 1) 고정 헤더 */}
       <header className="shop-header">
         <button className="back-button" onClick={() => navigate(-1)}>
           <img src={backArrow} alt="뒤로가기" />
         </button>
         <span className="header-title">코인 구매</span>
       </header>
-
-      {/* 2) 분리선 */}
       <div className="shop-separator" />
-
-      {/* 3) 본문 스크롤 영역 */}
       <div className="shop-body">
         {options.map(({ coins, price }) => (
           <div key={coins} className="shop-card">
@@ -49,28 +44,23 @@ export default function Shop() {
 
         {selAmount !== null && (
           <>
-            {/* 배경 오버레이 (클릭 시 모달 닫기) */}
             <div
               className="modal-overlay"
               onClick={() => setSelAmount(null)}
               style={{
                 position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
+                top: 0, left: 0,
+                width: '100%', height: '100%',
                 background: 'rgba(0,0,0,0.3)',
                 zIndex: 1000
               }}
             />
 
-            {/* 확인 모달 */}
             <div
               className="confirm-modal"
               style={{
                 position: 'fixed',
-                top: '50%',
-                left: '50%',
+                top: '50%', left: '50%',
                 transform: 'translate(-50%, -50%)',
                 zIndex: 1001
               }}
@@ -89,5 +79,5 @@ export default function Shop() {
         )}
       </div>
     </div>
-);
+  );
 }

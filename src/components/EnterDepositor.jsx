@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/EnterDepositor.css';
 
 export default function EnterDepositor() {
   const { amount } = useParams();
-  const navigate  = useNavigate();
-  const [depositorName, setDepositorName] = useState('');
+  const navigate   = useNavigate();
+  const [depositor, setDepositor] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = e => {
     e.preventDefault();
-    if (!depositorName.trim()) {
-      alert('입금자명을 입력해주세요.');
-      return;
-    }
-    navigate(`/payment/${amount}/${encodeURIComponent(depositorName)}`);
+    if (!depositor.trim()) return;
+    // 결제 페이지로 이동하며 입금자명은 쿼리스트링으로 전달
+    navigate(`/payment/${amount}?depositor=${encodeURIComponent(depositor.trim())}`);
   };
 
   return (
@@ -27,11 +25,11 @@ export default function EnterDepositor() {
         <input
           id="depositorName"
           type="text"
-          value={depositorName}
-          onChange={(e) => setDepositorName(e.target.value)}
-          placeholder="예: 홍길동"
+          value={depositor}
+          onChange={e => setDepositor(e.target.value)}
+          placeholder="예금주명을 입력해주세요"
         />
-        <button type="submit">다음</button>
+        <button type="submit">결제하기</button>
       </form>
     </div>
   );
