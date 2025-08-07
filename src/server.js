@@ -1,10 +1,8 @@
-// 경로: server.js
+// server.js
 
-const express               = require('express');
-const path                  = require('path');
-const bodyParser            = require('body-parser');
-const payRouter             = require('./server/routes/pay');
-const paymentResultRouter   = require('./server/routes/paymentResult');
+const express    = require('express');
+const path       = require('path');
+const bodyParser = require('body-parser');
 
 const app = express();
 
@@ -12,16 +10,10 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// 2) 결제 승인 API (/api/pay/approve)
-app.use('/api/pay', payRouter);
-
-// 3) 결제 결과 리턴 처리 라우터 (/payment/result)
-app.use('/payment', paymentResultRouter);
-
-// 4) React 빌드 결과물 서빙
+// 2) React 빌드 결과물 서빙
 app.use(express.static(path.join(__dirname, 'build')));
 
-// 5) SPA 핸들링: 그 외 모든 GET 요청은 index.html
+// 3) SPA 핸들링: 그 외 모든 GET 요청은 index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });

@@ -1,31 +1,32 @@
 // src/App.js
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate }    from 'react-router-dom';
 import { onAuthStateChanged }         from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { auth, db }                   from './firebaseConfig';
 
-import Home                       from './components/Home';
-import SignUp                     from './components/SignUp';
-import Feed                       from './components/Feed';
-import PostCreate                 from './components/PostCreate';
-import PostDetail                 from './components/PostDetail';
-import EditPost                   from './components/EditPost';
-import MessageList                from './components/MessageList';
-import ChatRoom                   from './components/ChatRoom';
-import Shop                       from './components/Shop';
-import Payment                    from './components/Payment';
-import PaymentResult              from './components/PaymentResult';
-import Profile                    from './components/Profile';
-import EditProfile                from './components/EditProfile';
-import Withdraw                   from './components/Withdraw';
-import Report                     from './components/Report';
-import BottomNav                  from './components/BottomNav';
+import Home                   from './components/Home';
+import SignUp                 from './components/SignUp';
+import Feed                   from './components/Feed';
+import PostCreate             from './components/PostCreate';
+import PostDetail             from './components/PostDetail';
+import EditPost               from './components/EditPost';
+import MessageList            from './components/MessageList';
+import ChatRoom               from './components/ChatRoom';
+import Shop                   from './components/Shop';
+import Payment                from './components/Payment';
+// import PaymentResult        from './components/PaymentResult';  // 삭제
+import Profile                from './components/Profile';
+import EditProfile            from './components/EditProfile';
+import Withdraw               from './components/Withdraw';
+import Report                 from './components/Report';
+import BottomNav              from './components/BottomNav';
 
-import AdminPage                  from './components/AdminPage';
-import AdminEmailEntry            from './components/AdminEmailEntry';
-import AccountSwitchDashboard     from './components/AccountSwitchDashboard';
-import ProtectedAdminRoute        from './components/ProtectedAdminRoute';
+import AdminPage              from './components/AdminPage';
+import AdminEmailEntry        from './components/AdminEmailEntry';
+import AccountSwitchDashboard from './components/AccountSwitchDashboard';
+import ProtectedAdminRoute    from './components/ProtectedAdminRoute';
 
 export default function App() {
   const [user, setUser]               = useState(null);
@@ -68,24 +69,25 @@ export default function App() {
     <>
       <div style={{ paddingBottom: 80 }}>
         <Routes>
-          <Route path="/"                element={<Home />} />
-          <Route path="/signup"          element={<SignUp />} />
-          <Route path="/feed"            element={<Feed />} />
-          <Route path="/post/new"        element={<PostCreate />} />
-          <Route path="/post/:id"        element={<PostDetail />} />
-          <Route path="/post/:id/edit"   element={<EditPost />} />
-          <Route path="/messages"        element={<MessageList />} />
-          <Route path="/chat/:roomId"    element={<ChatRoom />} />
-          <Route path="/shop"            element={<Shop />} />
+          <Route path="/"              element={<Home />} />
+          <Route path="/signup"        element={<SignUp />} />
+          <Route path="/feed"          element={<Feed />} />
+          <Route path="/post/new"      element={<PostCreate />} />
+          <Route path="/post/:id"      element={<PostDetail />} />
+          <Route path="/post/:id/edit" element={<EditPost />} />
+          <Route path="/messages"      element={<MessageList />} />
+          <Route path="/chat/:roomId"  element={<ChatRoom />} />
+          <Route path="/shop"          element={<Shop />} />
 
-          {/* 무통장 결제 페이지 */}
+          {/* 무통장 입금(PayAction) 페이지 */}
           <Route path="/payment/:amount" element={<Payment />} />
 
-          <Route path="/payment/result"  element={<PaymentResult />} />
-          <Route path="/profile"         element={<Profile />} />
-          <Route path="/profile/edit"    element={<EditProfile />} />
-          <Route path="/withdraw"        element={<Withdraw />} />
-          <Route path="/report/:id"      element={<Report />} />
+          {/* 더 이상 PaymentResult 경로 없음 */}
+
+          <Route path="/profile"       element={<Profile />} />
+          <Route path="/profile/edit"  element={<EditProfile />} />
+          <Route path="/withdraw"      element={<Withdraw />} />
+          <Route path="/report/:id"    element={<Report />} />
 
           {/* 관리자 전용 */}
           <Route
