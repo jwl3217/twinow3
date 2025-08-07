@@ -1,7 +1,9 @@
 {
-  "functions": [
-    { "source": "functions" }
-  ],
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs18",
+    "platform": "gcfv1"
+  },
   "hosting": {
     "public": "build",
     "ignore": [ "firebase.json", "**/.*", "**/node_modules/**" ],
