@@ -57,7 +57,10 @@ export default function Shop() {
               <p>코인 {selAmount.toLocaleString()}개를 구매하시겠습니까?</p>
               <div className="confirm-buttons">
                 <button
-                  onClick={() => navigate(`/enter-depositor/${selAmount}`)}
+                  onClick={() => {
+                    setSelAmount(null);
+                    navigate(`/enter-depositor/${selAmount}`);
+                  }}
                 >
                   네
                 </button>
@@ -70,5 +73,5 @@ export default function Shop() {
         )}
       </div>
     </div>
-  );
+);
 }

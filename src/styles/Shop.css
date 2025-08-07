@@ -36,7 +36,7 @@
   position: relative;
 }
 
-/* 카드 스타일 (기존) */
+/* 카드 스타일 */
 .shop-card {
   display: flex;
   justify-content: space-between;
@@ -47,26 +47,32 @@
   border: 1px solid #ddd;
   border-radius: 8px;
 }
+
 .shop-card-info {
   display: flex;
   align-items: center;
 }
+
 .shop-card-img {
   width: 32px;
   height: 32px;
   margin-right: 12px;
 }
+
 .shop-card-text p {
   margin: 0;
 }
+
 .shop-card-coins {
   font-size: 16px;
   font-weight: bold;
 }
+
 .shop-card-price {
   font-size: 14px;
   color: #666;
 }
+
 .shop-card-btn {
   padding: 8px 16px;
   background: #007bff;
@@ -75,6 +81,7 @@
   border-radius: 4px;
   cursor: pointer;
 }
+
 .shop-card-btn:hover {
   background: #0056b3;
 }
