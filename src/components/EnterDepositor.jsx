@@ -3,32 +3,35 @@ import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/EnterDepositor.css';
 
 export default function EnterDepositor() {
-  const { amount } = useParams();       // Shop에서 전달된 코인 수량
+  const { amount } = useParams();
   const navigate  = useNavigate();
   const [depositorName, setDepositorName] = useState('');
 
-  const handleSubmit = e => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!depositorName.trim()) {
-      return alert('입금자명을 입력해주세요.');
+      alert('입금자명을 입력해주세요.');
+      return;
     }
-    // 결제 페이지로 입금자명과 amount 전송
-    navigate(`/payment/${amount}`, { state: { depositorName } });
+    // URL 파라미터로 입금자명 전달
+    navigate(`/payment/${amount}/${encodeURIComponent(depositorName)}`);
   };
 
   return (
     <div className="enter-depositor-container">
-      <h2>입금자명 입력</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
-          입금자명
-          <input
-            type="text"
-            value={depositorName}
-            onChange={e => setDepositorName(e.target.value)}
-            placeholder="예: 홍길동"
-          />
-        </label>
+      <header className="detail-header">
+        <h2>입금자명 입력</h2>
+      </header>
+      <div className="detail-separator" />
+      <form className="depositor-form" onSubmit={handleSubmit}>
+        <label htmlFor="depositorName">입금자명</label>
+        <input
+          id="depositorName"
+          type="text"
+          value={depositorName}
+          onChange={(e) => setDepositorName(e.target.value)}
+          placeholder="예: 홍길동"
+        />
         <button type="submit">다음</button>
       </form>
     </div>
