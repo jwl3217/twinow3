@@ -1,3 +1,5 @@
+// src/App.js
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged }      from 'firebase/auth';
@@ -31,6 +33,7 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdmin, setIsAdmin]         = useState(false);
 
+  // 로그인 상태 및 admin 클레임 체크
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
@@ -44,6 +47,7 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  // 채팅방 읽지 않은 메시지 카운트
   useEffect(() => {
     if (!user) return;
     const roomsQ = query(
@@ -77,14 +81,17 @@ export default function App() {
           {/* 코인 구매 흐름 */}
           <Route path="/shop"                        element={<Shop />} />
           <Route path="/enter-depositor/:amount"     element={<EnterDepositor />} />
-          <Route path="/payment/:amount/:depositorName" element={<Payment />} />
+          <Route
+            path="/payment/:amount/:depositorName"
+            element={<Payment />}
+          />
 
           <Route path="/profile"       element={<Profile />} />
           <Route path="/profile/edit"  element={<EditProfile />} />
           <Route path="/withdraw"      element={<Withdraw />} />
           <Route path="/report/:id"    element={<Report />} />
 
-          {/* 관리자 전용 */}
+          {/* 관리자 전용 페이지 */}
           <Route
             path="/admin"
             element={
@@ -101,11 +108,14 @@ export default function App() {
               </ProtectedAdminRoute>
             }
           />
+          {/* 계정 전환 대시보드는 공개 */}
           <Route path="/admin/switch" element={<AccountSwitchDashboard />} />
 
+          {/* catch-all → 피드로 리디렉트 */}
           <Route path="*" element={<Navigate to="/feed" replace />} />
         </Routes>
       </div>
+
       <BottomNav unreadCount={unreadCount} currentUser={user} />
     </>
   );

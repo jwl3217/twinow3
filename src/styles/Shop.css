@@ -1,139 +1,145 @@
-/* 경로: src/styles/Shop.css */
-
 .shop-container {
-  position: relative;
-  height: 100vh;
-  overflow: hidden;
-  background: #f5f5f5;
-  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-/* 1) 고정 헤더 */
 .shop-header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 70px;
   display: flex;
   align-items: center;
+  padding: 12px;
   background: #fff;
   border-bottom: 1px solid #ddd;
-  padding: 0 16px;
-  z-index: 10;
 }
 
-/* 뒤로가기 버튼 */
 .back-button {
-  width: 40px; height: 40px;
   background: none;
   border: none;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  padding: 0; margin: 0;
-}
-.back-button img {
-  width: 24px; height: 24px;
+  padding: 0;
+  margin-right: 16px;
 }
 
-/* 2) 분리선 */
+.header-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
 .shop-separator {
-  position: fixed;
-  top: 70px;
-  left: 0; right: 0;
   height: 1px;
-  background: #ddd;
-  z-index: 9;
+  background: #eee;
 }
 
-/* 3) 본문 스크롤 영역 */
 .shop-body {
-  position: absolute;
-  top: 71px;     /* 분리선 아래 */
-  bottom: 80px;  /* BottomNav 위 */
-  left: 0; right: 0;
+  flex: 1;
   overflow-y: auto;
   padding: 16px;
-  background: #f5f5f5;
-  box-sizing: border-box;
+  position: relative;
 }
 
-/* 4) 가로로 길쭉한 카드 스타일 */
+/* 카드 스타일 (기존) */
 .shop-card {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  background: #fff;
-  padding: 12px 16px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  align-items: center;
+  padding: 12px;
   margin-bottom: 12px;
-  width: 100%;
-  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
 }
-
-/* 카드 왼쪽: 이미지 + 텍스트 */
 .shop-card-info {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 .shop-card-img {
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
 }
-.shop-card-text {
-  display: flex;
-  flex-direction: column;
+.shop-card-text p {
+  margin: 0;
 }
 .shop-card-coins {
-  margin: 0;
   font-size: 16px;
   font-weight: bold;
 }
 .shop-card-price {
-  margin: 4px 0 0;
   font-size: 14px;
   color: #666;
 }
-
-/* 카드 오른쪽: 버튼 */
 .shop-card-btn {
-  padding: 6px 12px;
-  border: none;
-  background: #1da1f2;
+  padding: 8px 16px;
+  background: #007bff;
   color: #fff;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
 }
+.shop-card-btn:hover {
+  background: #0056b3;
+}
 
-/* 모달 오버레이 & 컨펌 */
+/* 모달 오버레이 */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0,0,0,0.3);
-  z-index: 100;
+  z-index: 1000;
 }
+
+/* 확인 모달 */
 .confirm-modal {
   position: fixed;
-  top: 50%; left: 50%;
+  top: 50%;
+  left: 50%;
+  width: 80%;
+  max-width: 320px;
   transform: translate(-50%, -50%);
   background: #fff;
   padding: 24px;
   border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1001;
   text-align: center;
-  z-index: 101;
 }
+
+.confirm-modal p {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
 .confirm-buttons {
-  margin-top: 16px;
   display: flex;
-  gap: 16px;
-  justify-content: center;
+  justify-content: space-around;
 }
+
 .confirm-buttons button {
-  padding: 8px 20px;
+  flex: 1;
+  margin: 0 8px;
+  padding: 8px 0;
+  font-size: 16px;
   border: none;
   border-radius: 4px;
-  background: #1da1f2;
-  color: #fff;
   cursor: pointer;
+}
+
+.confirm-buttons button:first-child {
+  background: #28a745;
+  color: #fff;
+}
+
+.confirm-buttons button:first-child:hover {
+  background: #218838;
+}
+
+.confirm-buttons button:last-child {
+  background: #dc3545;
+  color: #fff;
+}
+
+.confirm-buttons button:last-child:hover {
+  background: #c82333;
 }

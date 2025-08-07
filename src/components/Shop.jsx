@@ -7,10 +7,10 @@ import '../styles/Shop.css';
 export default function Shop() {
   const navigate = useNavigate();
   const options = [
-    { coins: 15000, price: '4700원(강추)' },
-    { coins: 20000, price: '12000원' },
-    { coins: 30000, price: '20000원' },
-    { coins: 50000, price: '35000원' }
+    { coins: 15000, price: '4,700원(강추)' },
+    { coins: 20000, price: '12,000원' },
+    { coins: 30000, price: '20,000원' },
+    { coins: 50000, price: '35,000원' }
   ];
   const [selAmount, setSelAmount] = useState(null);
 
@@ -22,7 +22,9 @@ export default function Shop() {
         </button>
         <span className="header-title">코인 구매</span>
       </header>
+
       <div className="shop-separator" />
+
       <div className="shop-body">
         {options.map(({ coins, price }) => (
           <div key={coins} className="shop-card">
@@ -44,30 +46,19 @@ export default function Shop() {
 
         {selAmount !== null && (
           <>
+            {/* 1) 배경 오버레이 */}
             <div
               className="modal-overlay"
               onClick={() => setSelAmount(null)}
-              style={{
-                position: 'fixed',
-                top: 0, left: 0,
-                width: '100%', height: '100%',
-                background: 'rgba(0,0,0,0.3)',
-                zIndex: 1000
-              }}
             />
 
-            <div
-              className="confirm-modal"
-              style={{
-                position: 'fixed',
-                top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                zIndex: 1001
-              }}
-            >
+            {/* 2) 확인 모달 */}
+            <div className="confirm-modal">
               <p>코인 {selAmount.toLocaleString()}개를 구매하시겠습니까?</p>
               <div className="confirm-buttons">
-                <button onClick={() => navigate(`/enter-depositor/${selAmount}`)}>
+                <button
+                  onClick={() => navigate(`/enter-depositor/${selAmount}`)}
+                >
                   네
                 </button>
                 <button onClick={() => setSelAmount(null)}>
