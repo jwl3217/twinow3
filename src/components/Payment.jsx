@@ -41,7 +41,7 @@ export default function Payment() {
       <div id="payaction-widget" />
       {/* 4) 계좌번호 직접 안내(위젯 외에도 명시적으로 보여주고 싶다면) */}
       <div style={{ marginTop: 16, fontSize:14 }}>
-        <p>입금 계좌: 하나은행 311-910469-73307 (예금주: 페이액션)</p>
+        <p>입금 계좌: 하나은행 311-910469-73307 (예금주: 이재원)</p>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import express from 'express';
 import fetch   from 'node-fetch';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db }               from '../firebaseConfig'; // 재사용 가능하다면
+import { auth, db }               from '../../firebaseConfig'; // 재사용 가능하다면
 
 const router = express.Router();
 

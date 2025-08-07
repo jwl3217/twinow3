@@ -9,13 +9,13 @@ admin.initializeApp();
 
 const app = express();
 
-// CORS 설정 (필요에 따라 도메인 제한 가능)
+// CORS & JSON body 파싱
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 1) 관리자 전용: 계정 생성 (https callable → 내부용. 사용 안 하시면 제거 가능)
-// ─────────────────────────────────────────────────────────────────────────────
+/*─────────────────────────────────────────────────────────────────────────────*/
+/* 1) 관리자 전용: 계정 생성 (https callable)                                  */
+/*─────────────────────────────────────────────────────────────────────────────*/
 exports.createUser = functions.https.onCall(async (data, context) => {
   if (!context.auth || context.auth.token.admin !== true) {
     throw new functions.https.HttpsError('permission-denied','관리자만 사용 가능합니다');
@@ -28,9 +28,9 @@ exports.createUser = functions.https.onCall(async (data, context) => {
   return { uid: userRecord.uid };
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2) 관리자 전용: 계정 삭제
-// ─────────────────────────────────────────────────────────────────────────────
+/*─────────────────────────────────────────────────────────────────────────────*/
+/* 2) 관리자 전용: 계정 삭제                                                  */
+/*─────────────────────────────────────────────────────────────────────────────*/
 exports.deleteUser = functions.https.onCall(async (data, context) => {
   if (!context.auth || context.auth.token.admin !== true) {
     throw new functions.https.HttpsError('permission-denied','관리자만 사용 가능합니다');
@@ -43,9 +43,9 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
   return { success: true };
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 3) 커스텀 토큰 생성 (계정 전환 대시보드용)
-// ─────────────────────────────────────────────────────────────────────────────
+/*─────────────────────────────────────────────────────────────────────────────*/
+/* 3) 커스텀 토큰 생성 (계정 전환 대시보드용)                                  */
+/*─────────────────────────────────────────────────────────────────────────────*/
 exports.createCustomToken = functions.https.onCall(async (data) => {
   const { uid } = data;
   if (!uid) {
@@ -55,15 +55,14 @@ exports.createCustomToken = functions.https.onCall(async (data) => {
   return { token };
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 4) 결제 승인 API (클라이언트에서 fetch("/api/pay/approve") 호출)
-// ─────────────────────────────────────────────────────────────────────────────
+/*─────────────────────────────────────────────────────────────────────────────*/
+/* 4) 결제 승인 API (클라이언트에서 fetch("/api/pay/approve") 호출)         */
+/*─────────────────────────────────────────────────────────────────────────────*/
 app.post('/pay/approve', async (req, res) => {
   const { merchantUid, tid } = req.body;
   if (!merchantUid || !tid) {
     return res.status(400).json({ ok: false, error: 'merchantUid, tid 필수' });
   }
-  // NICEPAY 승인 요청
   const fetch = require('node-fetch');
   const CLIENT_KEY = 'R2_e7af7dfe1d684817a588799dbceadc61';
   const SECRET_KEY = '23ce497b37ac441487651f3a2e5d9f58';
@@ -80,7 +79,7 @@ app.post('/pay/approve', async (req, res) => {
     });
     const data = await apiRes.json();
     if (data.resultCode === '3001') {
-      // DB 업데이트 등 필요한 로직 추가 가능
+      // TODO: DB 업데이트 등 필요한 로직
       return res.json({ ok: true });
     } else {
       return res.json({ ok: false, error: data.resultMsg });
@@ -91,18 +90,19 @@ app.post('/pay/approve', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 5) 무통장(Webhook) 처리 예시 (PayAction 등)
-// ─────────────────────────────────────────────────────────────────────────────
-app.post('/webhook/payaction', (req, res) => {
-  // x-webhook-key, x-mall-id 검사...
-  // req.body 처리 후
-  console.log('PayAction Webhook:', req.headers, req.body);
-  // 처리 완료 응답
-  res.json({ status: 'success' });
-});
+/*─────────────────────────────────────────────────────────────────────────────*/
+/* 5) 결제 주문 생성 & 내 계좌정보 응답 (createPayment)                       */
+/*─────────────────────────────────────────────────────────────────────────────*/
+const createPaymentRouter = require('./src/server/routes/createPayment');
+app.use(createPaymentRouter);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 6) Express 앱을 Cloud Functions HTTP로 노출
-// ─────────────────────────────────────────────────────────────────────────────
+/*─────────────────────────────────────────────────────────────────────────────*/
+/* 6) 무통장(Webhook) 처리 (PayAction)                                       */
+/*─────────────────────────────────────────────────────────────────────────────*/
+const payactionWebhookRouter = require('./src/server/routes/payactionWebhook');
+app.use(payactionWebhookRouter);
+
+/*─────────────────────────────────────────────────────────────────────────────*/
+/* 7) Express 앱을 Cloud Functions HTTP로 노출                                 */
+/*─────────────────────────────────────────────────────────────────────────────*/
 exports.api = functions.https.onRequest(app);
