@@ -1,12 +1,10 @@
-// 경로: src/components/EnterDepositor.jsx
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/EnterDepositor.css';
 
 export default function EnterDepositor() {
   const { amount } = useParams();
-  const navigate = useNavigate();
+  const navigate   = useNavigate();
   const [depositor, setDepositor] = useState('');
 
   const handleSubmit = (e) => {
@@ -15,7 +13,7 @@ export default function EnterDepositor() {
       alert('입금자명을 입력해주세요');
       return;
     }
-    // URL 인코딩
+    // URL 세이프하게 인코딩
     const name = encodeURIComponent(depositor.trim());
     navigate(`/payment/${amount}/${name}`);
   };
