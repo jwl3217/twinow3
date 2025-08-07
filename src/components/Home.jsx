@@ -65,7 +65,7 @@ export default function Home() {
       <img src={twinowLogo} alt="TwiNow 로고" className="logo" />
       <h1>TwiNow</h1>
       <p style={{ textAlign: 'center', margin: '20px 0 5px', color: '#555' }}>
-        트위나우는 트위터와 비슷한
+        트위나우는 트위터와 비슷한a
       </p>
       <p style={{ textAlign: 'center', margin: '0 0 20px', color: '#555' }}>
         온라인 채팅 커뮤니티 플랫폼입니다.
