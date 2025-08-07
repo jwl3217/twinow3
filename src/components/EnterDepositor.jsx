@@ -13,7 +13,6 @@ export default function EnterDepositor() {
       alert('입금자명을 입력해주세요.');
       return;
     }
-    // URL 파라미터로 입금자명 전달
     navigate(`/payment/${amount}/${encodeURIComponent(depositorName)}`);
   };
 

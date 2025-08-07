@@ -9,13 +9,12 @@ export default function Payment() {
   const navigate      = useNavigate();
 
   useEffect(() => {
-    // 입금자명이 없으면 다시 입력 페이지로
+    // depositorName 없으면 입력 페이지로 리다이렉트
     if (!depositorName) {
       navigate(`/enter-depositor/${payAmount}`, { replace: true });
       return;
     }
 
-    // PayAction SDK 로드 & init
     const script = document.createElement('script');
     script.src   = 'https://widget.payaction.app/sdk/standard.js';
     script.async = true;
@@ -25,7 +24,7 @@ export default function Payment() {
         targetElement: '#payaction-widget',
         orderId:       `pa_${Date.now()}`,
         amount:        payAmount,
-        depositorName,                           // 필수 옵션!
+        depositorName,                           // 반드시 전달
         cancelDate:    new Date(Date.now() + 24*3600*1000),
         buttons: {
           home:   { text: '피드로',   url: '/feed' },
@@ -43,9 +42,7 @@ export default function Payment() {
         <h2>무통장 입금</h2>
       </header>
       <div className="detail-separator" />
-      {/* 위젯 렌더링 지점 */}
       <div id="payaction-widget" />
-      {/* 직접 안내 */}
       <div style={{ marginTop: 16, fontSize: 14 }}>
         <p>입금자명: <strong>{depositorName}</strong></p>
         <p>입금 계좌: 하나은행 311-910469-73307 (예금주: 이재원)</p>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged }      from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { auth, db } from './firebaseConfig';
+import { auth, db }                from './firebaseConfig';
 
 import Home                   from './components/Home';
 import SignUp                 from './components/SignUp';
@@ -31,7 +31,6 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdmin, setIsAdmin]         = useState(false);
 
-  // 로그인 상태 + admin claim 체크
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
@@ -45,7 +44,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // unread 카운트 실시간 업데이트
   useEffect(() => {
     if (!user) return;
     const roomsQ = query(
@@ -77,8 +75,8 @@ export default function App() {
           <Route path="/chat/:roomId"  element={<ChatRoom />} />
 
           {/* 코인 구매 흐름 */}
-          <Route path="/shop"                element={<Shop />} />
-          <Route path="/enter-depositor/:amount"         element={<EnterDepositor />} />
+          <Route path="/shop"                        element={<Shop />} />
+          <Route path="/enter-depositor/:amount"     element={<EnterDepositor />} />
           <Route path="/payment/:amount/:depositorName" element={<Payment />} />
 
           <Route path="/profile"       element={<Profile />} />
@@ -103,7 +101,6 @@ export default function App() {
               </ProtectedAdminRoute>
             }
           />
-          {/* 계정 전환 대시보드(공개) */}
           <Route path="/admin/switch" element={<AccountSwitchDashboard />} />
 
           <Route path="*" element={<Navigate to="/feed" replace />} />
