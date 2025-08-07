@@ -95,7 +95,7 @@ app.post('/pay/approve', async (req, res) => {
 const createPaymentRouter    = require('./routes/createPayment');
 const payactionWebhookRouter = require('./routes/payactionWebhook');
 
-app.use(createPaymentRouter);
+app.use('/api', createPaymentRouter);
 app.use(payactionWebhookRouter);
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,16 +1,14 @@
-// src/components/Payment.jsx
-
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/Payment.css';
 
 export default function Payment() {
-  const { amount, depositorName } = useParams();      // /payment/:amount/:depositorName
+  const { amount, depositorName } = useParams();      // URL: /payment/:amount/:depositorName
   const payAmount  = Number(amount);
   const navigate   = useNavigate();
 
   useEffect(() => {
-    // 1) 입금자명이 없으면 다시 입력 페이지로
+    // 예금자명 없으면 다시 입력 페이지로
     if (!depositorName) {
       navigate(`/enter-depositor/${amount}`);
       return;
@@ -18,11 +16,14 @@ export default function Payment() {
 
     (async () => {
       try {
-        // ← 여기만 /createPayment → /api/createPayment 로 변경
+        // 1) 백엔드에 주문 생성 요청 (amount + depositorName)
         const res = await fetch('/api/createPayment', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ amount: payAmount })
+          body:    JSON.stringify({
+            amount:        payAmount,
+            depositorName: decodeURIComponent(depositorName)
+          })
         });
         if (!res.ok) {
           const text = await res.text();
@@ -36,7 +37,7 @@ export default function Payment() {
           accountHolder
         } = await res.json();
 
-        // 2) SDK 로드 & init
+        // 2) PayAction SDK 로드 및 위젯 초기화
         const script = document.createElement('script');
         script.src   = 'https://widget.payaction.app/sdk/standard.js';
         script.async = true;
@@ -44,22 +45,22 @@ export default function Payment() {
           window.PayActionWidget.init({
             clientKey:     'ZDSK7NP8TSBN',
             targetElement: '#payaction-widget',
-            orderId:       orderNumber,
+            orderId:       orderNumber,                    // ← 백엔드에서 내려준 주문번호
             amount:        payAmount,
             depositorName: decodeURIComponent(depositorName),
-            bankName,         // 내 계좌 정보가 위젯에 표시됩니다
+            bankName,                                      // ← 내 계좌 정보
             accountNumber,
             accountHolder,
             cancelDate:    new Date(autoCancelAt),
             buttons: {
-              home:   { text: '피드로',    url: '/feed' },
-              mypage: { text: '주문내역',  url: '/mypage' }
+              home:   { text: '피드로',   url: '/feed' },
+              mypage: { text: '주문내역', url: '/mypage' }
             }
           });
         };
         document.body.appendChild(script);
 
-        // 언마운트 때 스크립트 제거
+        // 컴포넌트 언마운트 시 스크립트 제거
         return () => document.body.removeChild(script);
 
       } catch (err) {
@@ -70,10 +71,16 @@ export default function Payment() {
 
   return (
     <div className="payment-container">
-      <header className="detail-header"><h2>무통장 입금</h2></header>
+      <header className="detail-header">
+        <h2>무통장 입금</h2>
+      </header>
       <div className="detail-separator" />
-      {/* 여기에 PayAction 위젯이 렌더링 됩니다 */}
+      {/* PayAction 위젯이 여기에 렌더링 됩니다 */}
       <div id="payaction-widget" />
+      {/* (선택) 추가 안내 문구 */}
+      <div style={{ marginTop: 16, fontSize: 14 }}>
+        <p>입금 계좌: 하나은행 311-910469-73307 (예금주: 이재원)</p>
+      </div>
     </div>
   );
 }
