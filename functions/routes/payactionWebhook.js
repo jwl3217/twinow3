@@ -1,38 +1,34 @@
 const express = require('express');
-const admin   = require('firebase-admin');
 const router  = express.Router();
 
-const WEBHOOK_KEY = process.env.PAYACTION_WEBHOOK_KEY;
-const MALL_ID     = process.env.PAYACTION_MALL_ID;
+const {
+  PAYACTION_WEBHOOK_KEY,
+  PAYACTION_MALL_ID
+} = process.env;
 
-router.post('/webhook/payaction', async (req, res) => {
-  const sig  = req.header('x-webhook-key');
-  const mall = req.header('x-mall-id');
+// 웹훅 엔드포인트: POST /webhook/payaction
+router.post('/webhook/payaction', (req, res) => {
+  const sigKey   = req.header('x-webhook-key');
+  const mallId   = req.header('x-mall-id');
+  const traceId  = req.header('x-trace-id');
+  const event    = req.body; // { eventType, merchantUid, amount, ... }
 
-  if (sig !== WEBHOOK_KEY || mall !== MALL_ID) {
-    return res.status(401).json({
-      status:  'fail',
-      message: 'Invalid webhook key or mall id'
-    });
+  // 인증
+  if (sigKey !== PAYACTION_WEBHOOK_KEY || mallId !== PAYACTION_MALL_ID) {
+    console.warn('⚠️ 잘못된 웹훅 호출:', { sigKey, mallId });
+    return res.status(403).json({ status: 'forbidden' });
   }
 
-  const { orderId, status, amount, userId } = req.body;
-  if (status === 'PAID') {
-    try {
-      const db      = admin.firestore();
-      const userRef = db.doc(`users/${userId}`);
-      const snap    = await userRef.get();
-      const prev    = snap.exists ? (snap.data().coins || 0) : 0;
+  console.log(`Webhook[${traceId}] 이벤트 수신:`, event);
 
-      await userRef.update({ coins: prev + Number(amount) });
-      return res.json({ status: 'success' });
-    } catch (e) {
-      console.error('[webhook/payaction] 처리 오류:', e);
-      return res.status(500).json({ status: 'fail' });
-    }
+  // 예시: 입금 매칭 대기 이벤트 처리
+  if (event.eventType === 'order_matching_wait') {
+    // TODO: Firestore에 저장하거나, 알림 시스템에 전달
+    console.log(`매칭대기 주문: ${event.merchantUid}`);
   }
 
-  res.json({ status: 'ignored' });
+  // 정상 응답
+  res.status(200).json({ status: 'success' });
 });
 
 module.exports = router;
