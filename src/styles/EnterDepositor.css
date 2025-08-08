@@ -1,39 +1,28 @@
-.enter-depositor-container {
-  padding: 16px;
+.enter-depositor {
+  max-width: 400px;
+  margin: 40px auto;
+  padding: 0 16px;
 }
-
-.enter-depositor-header {
-  display: flex;
-  align-items: center;
+.enter-depositor h2 {
+  text-align: center;
+  margin-bottom: 24px;
 }
-
-.enter-depositor-separator {
-  height: 1px;
-  background-color: #ddd;
-  margin: 8px 0;
-}
-
-.enter-depositor-form {
+.enter-depositor form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
-
-.enter-depositor-form label {
-  font-weight: bold;
+.enter-depositor label {
+  margin-bottom: 16px;
+  font-size: 14px;
 }
-
-.enter-depositor-form input {
+.enter-depositor input {
+  width: 100%;
   padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  margin-top: 4px;
+  font-size: 16px;
 }
-
-.enter-depositor-form button {
-  padding: 10px;
-  border: none;
-  background-color: #007bff;
-  color: #fff;
-  border-radius: 4px;
+.enter-depositor button {
+  padding: 12px;
+  font-size: 16px;
   cursor: pointer;
 }

@@ -1,52 +1,37 @@
-/* 경로: src/styles/ManualPayment.css */
-
 .manual-payment {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 24px;
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 0 16px;
   font-size: 14px;
   line-height: 1.6;
 }
-
 .manual-payment h2 {
-  margin-bottom: 16px;
-  font-size: 18px;
   text-align: center;
-}
-
-.manual-payment dl {
-  display: grid;
-  grid-template-columns: 100px 1fr;
-  row-gap: 8px;
-  column-gap: 16px;
   margin-bottom: 24px;
 }
-
+.manual-payment dl {
+  border: 1px solid #ddd;
+  padding: 16px;
+  border-radius: 4px;
+}
 .manual-payment dt {
   font-weight: bold;
-  text-align: right;
+  margin-top: 12px;
 }
-
 .manual-payment dd {
-  margin: 0;
+  margin-left: 0;
 }
-
 .manual-payment .buttons {
   display: flex;
   justify-content: space-between;
+  margin-top: 24px;
 }
-
-.manual-payment .buttons button {
+.manual-payment button {
   flex: 1;
-  margin: 0 4px;
-  padding: 12px 0;
-  border: none;
-  background-color: #4caf50;
-  color: white;
+  padding: 12px;
   font-size: 16px;
-  border-radius: 4px;
+  cursor: pointer;
 }
-
-.manual-payment .buttons button:last-child {
-  background-color: #757575;
+.manual-payment button + button {
+  margin-left: 16px;
 }
