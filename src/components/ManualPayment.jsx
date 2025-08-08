@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import './ManualPayment.css'; // 필요하면 스타일 정의
 
 export default function ManualPayment() {
   const { amount: paramAmount, depositorName: paramName } = useParams();

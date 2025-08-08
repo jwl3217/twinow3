@@ -1,37 +1,50 @@
-.manual-payment {
-  max-width: 500px;
-  margin: 40px auto;
-  padding: 0 16px;
-  font-size: 14px;
-  line-height: 1.6;
+/* src/components/ManualPayment.css */
+
+.manual-payment-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
 }
-.manual-payment h2 {
-  text-align: center;
-  margin-bottom: 24px;
-}
-.manual-payment dl {
+
+.order-info {
+  background: #f9f9f9;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
   border: 1px solid #ddd;
-  padding: 16px;
-  border-radius: 4px;
 }
-.manual-payment dt {
-  font-weight: bold;
-  margin-top: 12px;
+
+.order-info div {
+  margin-bottom: 0.5rem;
 }
-.manual-payment dd {
-  margin-left: 0;
+
+.manual-payment-form label {
+  display: block;
+  margin-bottom: 0.75rem;
 }
-.manual-payment .buttons {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 24px;
+
+.manual-payment-form input,
+.manual-payment-form select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  box-sizing: border-box;
 }
-.manual-payment button {
-  flex: 1;
-  padding: 12px;
-  font-size: 16px;
+
+.error-message {
+  color: red;
+  margin-bottom: 0.75rem;
+}
+
+.manual-payment-form button {
+  width: 100%;
+  padding: 0.75rem;
+  background: #0066ff;
+  color: white;
+  border: none;
   cursor: pointer;
 }
-.manual-payment button + button {
-  margin-left: 16px;
+
+.manual-payment-form button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
