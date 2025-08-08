@@ -1,9 +1,12 @@
 const express = require('express');
 const router  = express.Router();
 
-// TODO: 실제 PayAction API 호출 로직을 이 함수 안에 구현하세요.
+// TODO: 실제 PayAction REST API 호출 로직을 이 함수 안에 구현하세요.
+// 예를 들어:
+//   const res = await fetch('https://api.payaction.app/order', { … });
+//   return await res.json();
 async function fetchPayactionOrder({ amount, depositorName }) {
-  // 현재는 더미 응답을 반환합니다.
+  // 현재는 더미 응답
   return {
     orderNumber:  `pa_${Date.now()}`,                       // 고유 주문번호
     autoCancelAt: Date.now() + 24 * 3600 * 1000,            // 24시간 후 타임스탬프
@@ -20,7 +23,7 @@ router.post('/createPayment', async (req, res) => {
         .json({ error: 'amount와 depositorName을 모두 전달해야 합니다.' });
     }
 
-    // 1) 주문 생성 (더미 또는 실제 API 호출)
+    // 1) PayAction에 주문 생성 (더미 또는 실제 API 호출)
     const payment = await fetchPayactionOrder({ amount, depositorName });
 
     // 2) 환경변수 또는 기본값으로 내 계좌 정보 로드
