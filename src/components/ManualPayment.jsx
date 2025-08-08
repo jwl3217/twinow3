@@ -1,26 +1,56 @@
-import React from 'react';
+// src/components/ManualPayment.jsx
+import React, { useState } from 'react';
 
 export default function ManualPayment() {
-  const handleCreateOrder = async () => {
-    const merchantUid = `order_${Date.now()}`;
-    const amount      = 1000; // 예시
-    const res = await fetch('/api/order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ merchantUid, amount })
-    });
-    const body = await res.json();
-    if (!res.ok) {
-      return alert('결제 주문 생성 실패: ' + (body.error || res.status));
+  const [name, setName]     = useState('');
+  const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async () => {
+    if (!name || !amount) {
+      return alert('이름과 금액을 입력해주세요.');
     }
-    // 대시보드 '매칭대기' 탭으로 바로 이동
-    const url = `https://dashboard.payaction.app/mall/${process.env.REACT_APP_PAYACTION_MALL_ID}/payments?status=PENDING`;
-    window.open(url, '_blank');
+    setLoading(true);
+    const merchantUid = `order_${Date.now()}`;
+
+    try {
+      const res = await fetch('/api/createPayment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ merchantUid, amount: Number(amount), name })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || '주문 생성 실패');
+      alert(`주문 생성 성공!\n주문ID: ${merchantUid}`);
+      setName('');
+      setAmount('');
+    } catch (err) {
+      console.error(err);
+      alert(`주문 생성 중 오류가 발생했습니다.\n${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <button onClick={handleCreateOrder}>
-      무통장 입금 주문 생성 &amp; 대시보드 열기
-    </button>
+    <div style={{ maxWidth: 400, margin: 'auto' }}>
+      <h2>무통장입금 주문 생성</h2>
+      <input
+        placeholder="입금자명"
+        value={name}
+        onChange={e => setName(e.target.value)}
+        style={{ width: '100%', marginBottom: 8 }}
+      />
+      <input
+        placeholder="금액"
+        type="number"
+        value={amount}
+        onChange={e => setAmount(e.target.value)}
+        style={{ width: '100%', marginBottom: 8 }}
+      />
+      <button onClick={handleCreate} disabled={loading} style={{ width: '100%' }}>
+        {loading ? '생성 중…' : '주문 생성'}
+      </button>
+    </div>
   );
 }
