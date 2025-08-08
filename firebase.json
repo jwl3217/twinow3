@@ -1,19 +1,31 @@
 {
-  "functions": [                       
+  "functions": [
     {
-      "codebase": "default",           
+      "codebase": "default",
       "source": "functions",
       "runtime": "nodejs20",
-      "platform": "gcfv1"        
+      "platform": "gcfv1"
     }
   ],
   "hosting": {
     "public": "build",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
       {
-        "source": "/webhook",
-        "function": "webhook"
+        "source": "/api/**",
+        "function": "api"
+      },
+      {
+        "source": "/pay/approve",
+        "function": "api"
+      },
+      {
+        "source": "/webhook/payaction",
+        "function": "api"
       },
       {
         "source": "**",
