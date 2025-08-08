@@ -7,7 +7,6 @@ const router = express.Router();
 
 router.post('/createPayment', async (req, res) => {
   const { amount, depositorName } = req.body;
-  // merchantUid 가 안 들어오면 서버에서 생성
   const merchantUid = req.body.merchantUid || `MO-${Date.now()}`;
 
   if (!amount || !depositorName) {
@@ -24,19 +23,22 @@ router.post('/createPayment', async (req, res) => {
         'x-api-key':    process.env.PAYACTION_API_KEY,
         'x-mall-id':    process.env.PAYACTION_MALL_ID
       },
-      body: JSON.stringify({ merchantUid, amount, depositorName })  // ← 여기
+      body: JSON.stringify({
+        merchant_uid:    merchantUid,       // ← snake_case 로 변경
+        amount:          amount,
+        depositor_name:  depositorName      // ← snake_case 로 변경
+      })
     });
 
     const data = await apiRes.json();
 
-    // PayAction API 자체의 성공/실패(status 필드) 체크
+    // PayAction 자체 status 체크
     if (data.status !== 'success') {
       return res
         .status(400)
         .json({ error: data.response?.message || '주문 생성 실패', details: data });
     }
 
-    // 정상
     return res.json({ success: true, order: data.response });
 
   } catch (err) {
