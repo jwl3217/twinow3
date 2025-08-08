@@ -1,35 +1,56 @@
-// functions/routes/createPayment.js
 const express = require('express');
 const fetch   = require('node-fetch');
-require('dotenv').config();
+const router  = express.Router();
 
-const router = express.Router();
-
-// POST /api/createPayment
 router.post('/createPayment', async (req, res) => {
-  const { merchantUid, amount, depositorName } = req.body;
-  if (!merchantUid || !amount || !depositorName) {
+  // body 로 받아야 합니다!
+  const {
+    merchantUid,
+    amount,
+    depositorName,
+    buyerPhone,
+    buyerEmail,
+    cashbillType,        // ex: "소득공제" or "지출증빙"
+    cashbillIdentifier   // 휴대폰 번호나 사업자번호
+  } = req.body;
+
+  // 필수 항목 전부 검사
+  if (
+    !merchantUid ||
+    !amount ||
+    !depositorName ||
+    !buyerPhone ||
+    !buyerEmail
+  ) {
     return res.status(400).json({
-      error: 'merchantUid, amount, depositorName을 모두 전달해야 합니다.'
+      error: 'merchantUid, amount, depositorName, buyerPhone, buyerEmail을 모두 전달해야 합니다.'
     });
   }
 
-  // Payaction API 요구 스펙에 맞춰 snake_case 로 변환
+  // 현금영수증 옵션이 필요 없으면 cashbillType/identifier는 생략 가능
   const payload = {
-    merchant_uid:     merchantUid,
-    amount,                             // 그대로 사용
-    depositor_name:   depositorName
+    merchantUid,
+    amount,
+    depositorName,
+    buyerPhone,
+    buyerEmail
   };
+  if (cashbillType && cashbillIdentifier) {
+    payload.cashbill = {
+      type:       cashbillType,
+      identifier: cashbillIdentifier
+    };
+  }
 
   try {
     const apiRes = await fetch('https://api.payaction.app/order', {
-      method:  'POST',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key':    process.env.PAYACTION_API_KEY,
         'x-mall-id':    process.env.PAYACTION_MALL_ID
       },
-      body: JSON.stringify(payload)   // ← 여기 꼭 body로!
+      body: JSON.stringify(payload)
     });
 
     const data = await apiRes.json();

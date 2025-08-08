@@ -1,12 +1,16 @@
-// functions/index.js
 const functions = require('firebase-functions');
 const express   = require('express');
-const app       = express();
+const cors      = require('cors');
+require('dotenv').config();
 
-app.use(express.json());                     // ← JSON body 파싱
-app.use('/api', require('./routes/createPayment'));
+const createPayment = require('./routes/createPayment');
 
-// 1st-Gen 또는 2nd-Gen 설정에 맞춰 onRequest 사용
+const app = express();
+app.use(cors({ origin: true }));
+app.use(express.json());
+
+app.use('/api', createPayment);
+
+// 1st-gen 함수: region() 없이 바로 onRequest 사용
 exports.api = functions
-  .region('us-central1')
   .https.onRequest(app);
