@@ -1,21 +1,18 @@
-// functions/index.js
-const admin    = require('firebase-admin');
-const express  = require('express');
-const cors     = require('cors');
-const { onRequest } = require('firebase-functions/v2/https');
+const functions = require('firebase-functions');
+const express   = require('express');
+const cors      = require('cors');
 
-admin.initializeApp();
-
-const createPaymentRouter    = require('./routes/createPayment');
-const payactionWebhookRouter = require('./routes/payactionWebhook');
+const createPaymentRouter = require('./routes/createPayment');
+const webhookRouter       = require('./routes/webhook');
 
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-app.get('/', (req, res) => res.status(200).send('OK'));
-app.use('/api',     createPaymentRouter);
-app.use('/webhook', payactionWebhookRouter);
+// 주문 생성 엔드포인트
+app.use('/createPayment', createPaymentRouter);
 
-// Gen-2 함수로 export
-exports.api = onRequest({ region: 'us-central1' }, app);
+// 페이액션 입금/매칭 웹훅 엔드포인트
+app.use('/webhook', webhookRouter);
+
+exports.api = functions.https.onRequest(app);
