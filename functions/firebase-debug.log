@@ -1,0 +1,43 @@
+[debug] [2025-08-08T11:52:06.523Z] ----------------------------------------------------------------------
+[debug] [2025-08-08T11:52:06.527Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jaden\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions
+[debug] [2025-08-08T11:52:06.528Z] CLI Version:   14.12.0
+[debug] [2025-08-08T11:52:06.528Z] Platform:      win32
+[debug] [2025-08-08T11:52:06.528Z] Node Version:  v22.17.1
+[debug] [2025-08-08T11:52:06.528Z] Time:          Fri Aug 08 2025 20:52:06 GMT+0900 (대한민국 표준시)
+[debug] [2025-08-08T11:52:06.529Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-08T11:52:06.751Z] Field "/functions" in "firebase.json" is possibly invalid: must be object
+[debug] [2025-08-08T11:52:06.751Z] Object "/functions/0" in "firebase.json" has unknown property: {"additionalProperty":"platform"}
+[debug] [2025-08-08T11:52:06.751Z] Field "/functions" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[debug] [2025-08-08T11:52:06.755Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-08T11:52:06.755Z] > authorizing via signed-in user (skdhbegjk@gmail.com)
+[debug] [2025-08-08T11:52:06.756Z] [iam] checking project twinow3-app for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2025-08-08T11:52:06.757Z] Checked if tokens are valid: true, expires at: 1754656987357
+[debug] [2025-08-08T11:52:06.757Z] Checked if tokens are valid: true, expires at: 1754656987357
+[debug] [2025-08-08T11:52:06.758Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions [none]
+[debug] [2025-08-08T11:52:06.758Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions x-goog-quota-user=projects/twinow3-app
+[debug] [2025-08-08T11:52:06.758Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2025-08-08T11:52:07.639Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions 200
+[debug] [2025-08-08T11:52:07.640Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2025-08-08T11:52:07.640Z] Checked if tokens are valid: true, expires at: 1754656987357
+[debug] [2025-08-08T11:52:07.640Z] Checked if tokens are valid: true, expires at: 1754656987357
+[debug] [2025-08-08T11:52:07.640Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/twinow3-app/serviceAccounts/twinow3-app@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2025-08-08T11:52:07.640Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/twinow3-app/serviceAccounts/twinow3-app@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2025-08-08T11:52:09.164Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/twinow3-app/serviceAccounts/twinow3-app@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2025-08-08T11:52:09.164Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/twinow3-app/serviceAccounts/twinow3-app@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'twinow3-app'...
+[info] 
+[info] i  deploying functions 
+[debug] [2025-08-08T11:52:09.171Z] Checked if tokens are valid: true, expires at: 1754656987357
+[debug] [2025-08-08T11:52:09.171Z] Checked if tokens are valid: true, expires at: 1754656987357
+[debug] [2025-08-08T11:52:09.171Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app [none]
+[debug] [2025-08-08T11:52:09.391Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app 200
+[debug] [2025-08-08T11:52:09.391Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app {"projectNumber":"836740417176","projectId":"twinow3-app","lifecycleState":"ACTIVE","name":"twinow3-app","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-07-26T12:51:23.356211Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2025-08-08T11:52:13.127Z] Checked if tokens are valid: true, expires at: 1754656987357
+[debug] [2025-08-08T11:52:13.127Z] Checked if tokens are valid: true, expires at: 1754656987357
+[debug] [2025-08-08T11:52:13.127Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig [none]
