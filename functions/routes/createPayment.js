@@ -1,31 +1,38 @@
-// functions/routes/createPayment.js
 const express = require('express');
 const fetch   = require('node-fetch');
 const router  = express.Router();
 
-// 실제 PayAction 주문 생성 호출
+// 환경변수에서 읽어오기
+const PAYACTION_API_KEY = process.env.PAYACTION_API_KEY;
+const PAYACTION_MALL_ID = process.env.PAYACTION_MALL_ID;
+const BANK_NAME         = process.env.BANK_NAME     || '하나은행';
+const BANK_ACCOUNT      = process.env.BANK_ACCOUNT  || '31191046973307';
+const BANK_HOLDER       = process.env.BANK_HOLDER   || '이재원';
+
 async function fetchPayactionOrder({ amount, depositorName }) {
-  const res = await fetch('https://api.payaction.app/order', {
+  const response = await fetch('https://api.payaction.app/order', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key':     process.env.PAYACTION_API_KEY,
-      'x-mall-id':     process.env.PAYACTION_MALL_ID
+      'x-api-key':     PAYACTION_API_KEY,
+      'x-mall-id':     PAYACTION_MALL_ID
     },
-    body: JSON.stringify({
-      amount, 
-      depositorName
-    })
+    body: JSON.stringify({ amount, depositorName })
   });
-  const data = await res.json();
-  if (!res.ok) {
+
+  const data = await response.json();
+  if (!response.ok) {
     console.error('[PayAction 주문생성 오류]', data);
-    throw new Error(data.error || `PayAction 주문 생성 실패 (status ${res.status})`);
+    throw new Error(data.error || data.message || `status ${response.status}`);
   }
-  // data.autoCancelAt 은 ISO8601 문자열 또는 ms 타임스탬프일 수 있습니다.
+
+  const autoCancelAt = typeof data.autoCancelAt === 'number'
+    ? data.autoCancelAt
+    : Date.parse(data.autoCancelAt);
+
   return {
-    orderNumber:  data.orderId,
-    autoCancelAt: new Date(data.autoCancelAt).getTime(),
+    orderNumber:  data.orderId || data.orderNumber,
+    autoCancelAt,
     amount:       data.amount
   };
 }
@@ -34,22 +41,17 @@ router.post('/createPayment', async (req, res) => {
   try {
     const { amount, depositorName } = req.body;
     if (!amount || !depositorName) {
-      return res
-        .status(400)
-        .json({ error: 'amount와 depositorName을 모두 전달해야 합니다.' });
+      return res.status(400).json({ error: 'amount와 depositorName을 모두 전달해야 합니다.' });
     }
 
-    // 1) PayAction에 실제 주문 생성
     const payment = await fetchPayactionOrder({ amount, depositorName });
 
-    // 2) 내 계좌 정보 (환경변수 또는 기본값)
     const bankInfo = {
-      bankName:      process.env.BANK_NAME     || '하나은행',
-      accountNumber: process.env.BANK_ACCOUNT  || '31191046973307',
-      accountHolder: process.env.BANK_HOLDER   || '이재원',
+      bankName:      BANK_NAME,
+      accountNumber: BANK_ACCOUNT,
+      accountHolder: BANK_HOLDER
     };
 
-    // 3) 클라이언트에 JSON 응답
     return res.json({
       orderNumber:  payment.orderNumber,
       autoCancelAt: payment.autoCancelAt,
