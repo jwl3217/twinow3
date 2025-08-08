@@ -1,39 +1,46 @@
 // functions/routes/createPayment.js
 const express = require('express');
-const axios   = require('axios');
-const functions = require('firebase-functions');
+const fetch   = require('node-fetch');
+require('dotenv').config();
 
 const router = express.Router();
-const { api_key, mall_id } = functions.config().payaction;
 
 router.post('/createPayment', async (req, res) => {
-  const { merchantUid, amount, depositorName } = req.body;
-  if (!merchantUid || !amount || !depositorName) {
-    return res.status(400).json({
-      error: 'merchantUid, amount, depositorName을 모두 전달해야 합니다.'
-    });
+  const { amount, depositorName } = req.body;
+  // merchantUid 가 안 들어오면 서버에서 생성
+  const merchantUid = req.body.merchantUid || `MO-${Date.now()}`;
+
+  if (!amount || !depositorName) {
+    return res
+      .status(400)
+      .json({ error: 'amount와 depositorName을 모두 전달해야 합니다.' });
   }
 
   try {
-    const response = await axios.post(
-      'https://api.payaction.app/order',
-      { merchantUid, amount, depositorName },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': api_key,
-          'x-mall-id': mall_id
-        }
-      }
-    );
-    return res.json({ success: true, order: response.data });
-  } catch (err) {
-    console.error('createPayment error', err.response || err);
-    if (err.response) {
+    const apiRes = await fetch('https://api.payaction.app/order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key':    process.env.PAYACTION_API_KEY,
+        'x-mall-id':    process.env.PAYACTION_MALL_ID
+      },
+      body: JSON.stringify({ merchantUid, amount, depositorName })  // ← 여기
+    });
+
+    const data = await apiRes.json();
+
+    // PayAction API 자체의 성공/실패(status 필드) 체크
+    if (data.status !== 'success') {
       return res
-        .status(err.response.status)
-        .json({ error: err.response.data.message || '주문 생성 실패', details: err.response.data });
+        .status(400)
+        .json({ error: data.response?.message || '주문 생성 실패', details: data });
     }
+
+    // 정상
+    return res.json({ success: true, order: data.response });
+
+  } catch (err) {
+    console.error('createPayment error:', err);
     return res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' });
   }
 });
