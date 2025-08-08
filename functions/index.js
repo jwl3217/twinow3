@@ -3,14 +3,21 @@ const express   = require('express');
 const cors      = require('cors');
 require('dotenv').config();
 
-const createPayment = require('./routes/createPayment');
+const createPaymentRouter = require('./routes/createPayment');
+const webhookRouter       = require('./routes/webhook');
 
 const app = express();
+
+// CORS 설정
 app.use(cors({ origin: true }));
+// JSON body 파싱
 app.use(express.json());
 
-app.use('/api', createPayment);
+// 라우터 등록
+app.use('/api', createPaymentRouter);
+app.use('/api', webhookRouter);
 
-// 1st-gen 함수: region() 없이 바로 onRequest 사용
+// 배포할 함수 export
 exports.api = functions
-  .https.onRequest(app);
+  .https
+  .onRequest(app);
