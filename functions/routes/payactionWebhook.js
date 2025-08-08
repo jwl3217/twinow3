@@ -1,34 +1,29 @@
-// functions/routes/payactionWebhook.js
-const express = require('express');
-require('dotenv').config();
+const express   = require('express');
+const functions = require('firebase-functions');
 
 const router = express.Router();
+const { webhook_key, mall_id } = functions.config().payaction;
 
-// PayAction 에서 입금매칭 완료 이벤트가 날아오는 엔드포인트
-router.post('/webhook/payaction', async (req, res) => {
-  const incomingKey  = req.headers['x-webhook-key'];
-  const incomingMall = req.headers['x-mall-id'];
-
-  // 인증 체크
+router.post('/', async (req, res) => {
+  // 헤더 검증
   if (
-    incomingKey  !== process.env.PAYACTION_WEBHOOK_KEY ||
-    incomingMall !== process.env.PAYACTION_MALL_ID
+    req.headers['x-webhook-key'] !== webhook_key ||
+    req.headers['x-mall-id']    !== mall_id
   ) {
-    console.warn('Invalid webhook auth', incomingKey, incomingMall);
-    return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+    console.warn('Invalid webhook signature or mall id');
+    return res.status(403).json({ error: 'Invalid signature' });
   }
 
   const event = req.body;
-  console.log('▶ PayAction Webhook event:', JSON.stringify(event));
+  console.log('Webhook received:', event);
 
-  // 예: event.type === 'matching_complete' 또는 event.data.status === 'matched'
-  if (event.type === 'matching_complete' || event.data?.status === 'matched') {
-    const { merchantUid, amount, depositName } = event.data;
-    // TODO: DB에 주문 상태 업데이트, 사용자 코인 충전 처리 등
-    console.log(`✅ 주문 매칭 완료: ${merchantUid} (${depositName}님 ${amount}원)`);
+  // 예: 매칭 완료 이벤트 처리
+  if (event.type === 'matched') {
+    // TODO: Firestore나 다른 DB에 주문 상태 업데이트, 코인 충전 로직 등
+    // await admin.firestore().doc(`orders/${event.merchantUid}`).update({ status: 'matched' });
   }
 
-  // 성공 응답
+  // 정상 수신 응답
   res.json({ status: 'success' });
 });
 
