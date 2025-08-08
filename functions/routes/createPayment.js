@@ -7,7 +7,6 @@ router.post('/createPayment', async (req, res) => {
     return res.status(400).json({ error: 'merchantUid, amount, depositorName을 모두 전달해야 합니다.' });
   }
   try {
-    // Node 18+ 의 경우 fetch 가 글로벌로 제공됩니다.
     const apiRes = await fetch('https://api.payaction.app/order', {
       method: 'POST',
       headers: {
@@ -19,7 +18,7 @@ router.post('/createPayment', async (req, res) => {
     });
     const data = await apiRes.json();
     if (!apiRes.ok) {
-      return res.status(apiRes.status).json({ error: data.message || '주문 생성 실패', details: data });
+      return res.status(apiRes.status).json({ error: data.message, details: data });
     }
     return res.json({ success: true, order: data });
   } catch (err) {
