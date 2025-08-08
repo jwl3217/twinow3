@@ -16,7 +16,7 @@ import MessageList            from './components/MessageList';
 import ChatRoom               from './components/ChatRoom';
 import Shop                   from './components/Shop';
 import EnterDepositor         from './components/EnterDepositor';
-import Payment                from './components/Payment';
+import ManualPayment from './components/ManualPayment';
 import Profile                from './components/Profile';
 import EditProfile            from './components/EditProfile';
 import Withdraw               from './components/Withdraw';
@@ -81,10 +81,7 @@ export default function App() {
           {/* 코인 구매 흐름 */}
           <Route path="/shop"                        element={<Shop />} />
           <Route path="/enter-depositor/:amount"     element={<EnterDepositor />} />
-          <Route
-            path="/payment/:amount/:depositorName"
-            element={<Payment />}
-          />
+          <Route path="/payment/:amount/:depositorName" element={<ManualPayment />} />
 
           <Route path="/profile"       element={<Profile />} />
           <Route path="/profile/edit"  element={<EditProfile />} />
