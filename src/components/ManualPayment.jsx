@@ -1,36 +1,37 @@
-// 경로: src/components/ManualPayment.jsx
-
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate }    from 'react-router-dom';
 import '../styles/ManualPayment.css';
 
 export default function ManualPayment() {
   const { amount, depositorName } = useParams();    // URL: /payment/:amount/:depositorName
   const navigate = useNavigate();
+
   const [orderInfo, setOrderInfo] = useState(null);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
-    // 1) 입금자명이 없으면 다시 입력 페이지로
+    // 입금자명이 없으면 다시 입력 페이지로 이동
     if (!depositorName) {
       navigate(`/enter-depositor/${amount}`);
       return;
     }
-    // 2) 백엔드에 주문 생성 요청
+
     (async () => {
       try {
         const res = await fetch('/api/createPayment', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
+          body: JSON.stringify({
             amount:        Number(amount),
             depositorName: decodeURIComponent(depositorName)
           })
         });
+
         if (!res.ok) {
           const text = await res.text();
           throw new Error(`status ${res.status} / ${text}`);
         }
+
         const info = await res.json();
         setOrderInfo(info);
       } catch (err) {
@@ -42,8 +43,21 @@ export default function ManualPayment() {
     })();
   }, [amount, depositorName, navigate]);
 
-  if (loading) return <div className="manual-payment"><p>결제 정보를 불러오는 중...</p></div>;
-  if (!orderInfo) return <div className="manual-payment"><p>결제 정보를 가져올 수 없습니다.</p></div>;
+  if (loading) {
+    return (
+      <div className="manual-payment">
+        <p>결제 정보를 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  if (!orderInfo) {
+    return (
+      <div className="manual-payment">
+        <p>결제 정보를 가져올 수 없습니다.</p>
+      </div>
+    );
+  }
 
   const {
     orderNumber,
