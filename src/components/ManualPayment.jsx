@@ -17,7 +17,11 @@ export default function ManualPayment() {
       const res = await fetch('/api/createPayment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ merchantUid, amount: Number(amount), name })
+         body: JSON.stringify({
+       merchantUid,
+       amount: Number(amount),
+       depositorName: name
+     })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || '주문 생성 실패');

@@ -6,9 +6,9 @@ require('dotenv').config();
 const router = express.Router();
 
 router.post('/createPayment', async (req, res) => {
-  const { merchantUid, amount, name } = req.body;
-  if (!merchantUid || !amount || !name) {
-    return res.status(400).json({ error: 'merchantUid, amount, name을 모두 전달하세요.' });
+  const { merchantUid, amount, depositorName } = req.body;
+   if (!merchantUid || !amount || !depositorName) {
+   return res.status(400).json({ error: 'merchantUid, amount, depositorName을 모두 전달해야 합니다.' });
   }
 
   try {
@@ -19,7 +19,7 @@ router.post('/createPayment', async (req, res) => {
         'x-api-key':    process.env.PAYACTION_API_KEY,
         'x-mall-id':    process.env.PAYACTION_MALL_ID
       },
-      body: JSON.stringify({ merchantUid, amount, depositName: name })
+      bbody: JSON.stringify({ merchantUid, amount, depositorName })
     });
 
     const data = await apiRes.json();
