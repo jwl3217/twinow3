@@ -1,20 +1,20 @@
+// functions/index.js
 const functions = require('firebase-functions');
 const express   = require('express');
 const cors      = require('cors');
 
 const createPaymentRouter = require('./routes/createPayment');
-const webhookRouter       = require('./routes/webhook');
+// (추가로 webhook 등 다른 라우터가 있으면 여기에 require)
 
 const app = express();
 
-// CORS 열기
+// --- 미들웨어 ---
 app.use(cors({ origin: true }));
-// JSON 본문 파싱
 app.use(express.json());
 
-// 라우트 등록
+// --- 라우팅 ---
 app.use('/api', createPaymentRouter);
-app.use('/api', webhookRouter);
+// app.use('/api', webhookRouter);  // 웹훅 라우터가 있다면 이렇게
 
-// Cloud Functions 로 배포
+// --- 배포용 엔드포인트 ---
 exports.api = functions.https.onRequest(app);
