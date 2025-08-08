@@ -1,23 +1,16 @@
-// functions/index.js
-const express = require('express');
-const cors    = require('cors');
-
-const { onRequest } = require('firebase-functions/v2/https');
+const functions = require('firebase-functions');
+const express   = require('express');
+const cors      = require('cors');
 require('dotenv').config();
 
-const createPaymentRouter = require('./routes/createPayment');
-// (웹훅 처리 필요 없으면 아래 줄 지워도 됩니다)
-// const webhookRouter       = require('./routes/payactionWebhook');
+const createPayment = require('./routes/createPayment');
 
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-// 주문 생성
-app.use('/api', createPaymentRouter);
+// 이 줄이 있어야 /api/createPayment 로 매핑됩니다
+app.use('/api', createPayment);
 
-// 웹훅 엔드포인트 (등록만 해 두시려면 그대로 두세요)
-// app.use('/webhook', webhookRouter);
-
-// 2nd Gen v2 방식으로 배포
-exports.api = onRequest({ region: 'us-central1' }, app);
+exports.api = functions
+  .https.onRequest(app);
