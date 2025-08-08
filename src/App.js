@@ -1,45 +1,37 @@
 // src/App.js
 
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot
-} from 'firebase/firestore';
-import { auth, db } from './firebaseConfig';
+import { Routes, Route, Navigate }   from 'react-router-dom';
+import { onAuthStateChanged }        from 'firebase/auth';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { auth, db }                  from './firebaseConfig';
 
-import Home from './components/Home';
-import SignUp from './components/SignUp';
-import Feed from './components/Feed';
-import PostCreate from './components/PostCreate';
-import PostDetail from './components/PostDetail';
-import EditPost from './components/EditPost';
-import MessageList from './components/MessageList';
-import ChatRoom from './components/ChatRoom';
+import Home                   from './components/Home';
+import SignUp                 from './components/SignUp';
+import Feed                   from './components/Feed';
+import PostCreate             from './components/PostCreate';
+import PostDetail             from './components/PostDetail';
+import EditPost               from './components/EditPost';
+import MessageList            from './components/MessageList';
+import ChatRoom               from './components/ChatRoom';
+import Shop                   from './components/Shop';
+import EnterDepositor         from './components/EnterDepositor';
+import ManualPayment          from './components/ManualPayment';  // ← 여기
+import Profile                from './components/Profile';
+import EditProfile            from './components/EditProfile';
+import Withdraw               from './components/Withdraw';
+import Report                 from './components/Report';
+import BottomNav              from './components/BottomNav';
 
-import Shop from './components/Shop';
-import EnterDepositor from './components/EnterDepositor';
-import ManualPayment from './components/ManualPayment';
-
-import Profile from './components/Profile';
-import EditProfile from './components/EditProfile';
-import Withdraw from './components/Withdraw';
-import Report from './components/Report';
-
-import BottomNav from './components/BottomNav';
-
-import AdminPage from './components/AdminPage';
-import AdminEmailEntry from './components/AdminEmailEntry';
+import AdminPage              from './components/AdminPage';
+import AdminEmailEntry        from './components/AdminEmailEntry';
 import AccountSwitchDashboard from './components/AccountSwitchDashboard';
-import ProtectedAdminRoute from './components/ProtectedAdminRoute';
+import ProtectedAdminRoute    from './components/ProtectedAdminRoute';
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser]               = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin]         = useState(false);
 
   // 로그인 상태 및 admin 클레임 체크
   useEffect(() => {
@@ -55,7 +47,7 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // 채팅방 읽지 않은 메시지 카운트 실시간 업데이트
+  // 채팅방 읽지 않은 메시지 카운트
   useEffect(() => {
     if (!user) return;
     const roomsQ = query(
@@ -77,32 +69,27 @@ export default function App() {
     <>
       <div style={{ paddingBottom: 80 }}>
         <Routes>
-          {/* 기본 페이지 */}
-          <Route path="/" element={<Home />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/feed" element={<Feed />} />
-          <Route path="/post/new" element={<PostCreate />} />
-          <Route path="/post/:id" element={<PostDetail />} />
+          <Route path="/"              element={<Home />} />
+          <Route path="/signup"        element={<SignUp />} />
+          <Route path="/feed"          element={<Feed />} />
+          <Route path="/post/new"      element={<PostCreate />} />
+          <Route path="/post/:id"      element={<PostDetail />} />
           <Route path="/post/:id/edit" element={<EditPost />} />
-          <Route path="/messages" element={<MessageList />} />
-          <Route path="/chat/:roomId" element={<ChatRoom />} />
+          <Route path="/messages"      element={<MessageList />} />
+          <Route path="/chat/:roomId"  element={<ChatRoom />} />
 
           {/* 코인 구매 흐름 */}
-          <Route path="/shop" element={<Shop />} />
-          <Route
-            path="/enter-depositor/:amount"
-            element={<EnterDepositor />}
-          />
+          <Route path="/shop"                        element={<Shop />} />
+          <Route path="/enter-depositor/:amount"     element={<EnterDepositor />} />
           <Route
             path="/payment/:amount/:depositorName"
-            element={<ManualPayment />}
+            element={<ManualPayment />}             // ← 무통장 입금 안내 컴포넌트
           />
 
-          {/* 프로필 관련 */}
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/edit" element={<EditProfile />} />
-          <Route path="/withdraw" element={<Withdraw />} />
-          <Route path="/report/:id" element={<Report />} />
+          <Route path="/profile"       element={<Profile />} />
+          <Route path="/profile/edit"  element={<EditProfile />} />
+          <Route path="/withdraw"      element={<Withdraw />} />
+          <Route path="/report/:id"    element={<Report />} />
 
           {/* 관리자 전용 페이지 */}
           <Route
@@ -122,20 +109,13 @@ export default function App() {
             }
           />
           {/* 계정 전환 대시보드는 공개 */}
-          <Route
-            path="/admin/switch"
-            element={<AccountSwitchDashboard />}
-          />
+          <Route path="/admin/switch" element={<AccountSwitchDashboard />} />
 
-          {/* 그 외 경로는 피드로 리디렉트 */}
+          {/* catch-all → 피드로 리디렉트 */}
           <Route path="*" element={<Navigate to="/feed" replace />} />
         </Routes>
       </div>
-
-      <BottomNav
-        unreadCount={unreadCount}
-        currentUser={user}
-      />
+      <BottomNav unreadCount={unreadCount} currentUser={user} />
     </>
   );
 }

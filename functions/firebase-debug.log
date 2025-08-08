@@ -1,0 +1,176 @@
+[debug] [2025-08-08T06:12:54.616Z] ----------------------------------------------------------------------
+[debug] [2025-08-08T06:12:54.623Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jaden\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js functions:shell
+[debug] [2025-08-08T06:12:54.624Z] CLI Version:   14.12.0
+[debug] [2025-08-08T06:12:54.624Z] Platform:      win32
+[debug] [2025-08-08T06:12:54.625Z] Node Version:  v22.17.1
+[debug] [2025-08-08T06:12:54.626Z] Time:          Fri Aug 08 2025 15:12:54 GMT+0900 (대한민국 표준시)
+[debug] [2025-08-08T06:12:54.626Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-08T06:12:54.838Z] Field "/functions" in "firebase.json" is possibly invalid: must be object
+[debug] [2025-08-08T06:12:54.839Z] Object "/functions/0" in "firebase.json" has unknown property: {"additionalProperty":"platform"}
+[debug] [2025-08-08T06:12:54.839Z] Field "/functions" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[debug] [2025-08-08T06:12:54.843Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-08T06:12:54.844Z] > authorizing via signed-in user (skdhbegjk@gmail.com)
+[debug] [2025-08-08T06:12:54.844Z] [iam] checking project twinow3-app for permissions ["firebase.projects.get"]
+[debug] [2025-08-08T06:12:54.846Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:12:54.846Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:12:54.847Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions [none]
+[debug] [2025-08-08T06:12:54.847Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions x-goog-quota-user=projects/twinow3-app
+[debug] [2025-08-08T06:12:54.847Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-08-08T06:12:55.159Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions 200
+[debug] [2025-08-08T06:12:55.159Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-08-08T06:12:55.166Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-08-08T06:12:55.189Z] defaultcredentials: writing to file C:\Users\jaden\AppData\Roaming\firebase\skdhbegjk_gmail_com_application_default_credentials.json
+[debug] [2025-08-08T06:12:55.191Z] DEBUG: Setting GAC to C:\Users\jaden\AppData\Roaming\firebase\skdhbegjk_gmail_com_application_default_credentials.json
+[debug] [2025-08-08T06:12:55.191Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:12:55.191Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:12:55.191Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig [none]
+[debug] [2025-08-08T06:12:55.785Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig 200
+[debug] [2025-08-08T06:12:55.785Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig {"projectId":"twinow3-app","storageBucket":"twinow3-app.firebasestorage.app"}
+[debug] [2025-08-08T06:12:55.816Z] [functions] Watching "C:\Users\jaden\twinow3\functions" for Cloud Functions...
+[debug] [2025-08-08T06:12:55.819Z] Validating nodejs source
+[debug] [2025-08-08T06:12:56.906Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.4.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2025-08-08T06:12:56.906Z] Building nodejs source
+[debug] [2025-08-08T06:12:56.907Z] Failed to find version of module node: reached end of search path C:\Users\jaden\twinow3\functions\node_modules
+[warn] !  functions: Your requested "node" version "20" doesn't match your global version "22". Using node@22 from host. 
+[debug] [2025-08-08T06:12:56.912Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-08-08T06:12:56.919Z] Found firebase-functions binary at 'C:\Users\jaden\twinow3\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8185
+
+[debug] [2025-08-08T06:12:57.825Z] Got response from /__/functions.yaml {"endpoints":{"createUser":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"createUser"},"deleteUser":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"deleteUser"},"createCustomToken":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"createCustomToken"},"api":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"httpsTrigger":{},"entryPoint":"api"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{}}
+[debug] [2025-08-08T06:13:01.877Z] [functions] Loaded functions definitions from source: createUser, deleteUser, createCustomToken, api.
+[debug] [2025-08-08T06:13:01.878Z] [functions[us-central1-createUser]] http function initialized (http://127.0.0.1:5000/twinow3-app/us-central1/createUser).
+[debug] [2025-08-08T06:13:01.878Z] [functions[us-central1-deleteUser]] http function initialized (http://127.0.0.1:5000/twinow3-app/us-central1/deleteUser).
+[debug] [2025-08-08T06:13:01.878Z] [functions[us-central1-createCustomToken]] http function initialized (http://127.0.0.1:5000/twinow3-app/us-central1/createCustomToken).
+[debug] [2025-08-08T06:13:01.878Z] [functions[us-central1-api]] http function initialized (http://127.0.0.1:5000/twinow3-app/us-central1/api).
+[info] i  functions: Loaded functions: createUser, deleteUser, createCustomToken, api 
+[warn] !  functions: The following emulators are not running, calls to these services will affect production: firestore, database, pubsub, storage, eventarc, tasks 
+[debug] [2025-08-08T06:13:15.402Z] ----------------------------------------------------------------------
+[debug] [2025-08-08T06:13:15.406Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jaden\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js functions:shell
+[debug] [2025-08-08T06:13:15.406Z] CLI Version:   14.12.0
+[debug] [2025-08-08T06:13:15.407Z] Platform:      win32
+[debug] [2025-08-08T06:13:15.407Z] Node Version:  v22.17.1
+[debug] [2025-08-08T06:13:15.407Z] Time:          Fri Aug 08 2025 15:13:15 GMT+0900 (대한민국 표준시)
+[debug] [2025-08-08T06:13:15.407Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-08T06:13:15.607Z] Field "/functions" in "firebase.json" is possibly invalid: must be object
+[debug] [2025-08-08T06:13:15.608Z] Object "/functions/0" in "firebase.json" has unknown property: {"additionalProperty":"platform"}
+[debug] [2025-08-08T06:13:15.608Z] Field "/functions" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[debug] [2025-08-08T06:13:15.612Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-08T06:13:15.612Z] > authorizing via signed-in user (skdhbegjk@gmail.com)
+[debug] [2025-08-08T06:13:15.612Z] [iam] checking project twinow3-app for permissions ["firebase.projects.get"]
+[debug] [2025-08-08T06:13:15.613Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:13:15.613Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:13:15.614Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions [none]
+[debug] [2025-08-08T06:13:15.614Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions x-goog-quota-user=projects/twinow3-app
+[debug] [2025-08-08T06:13:15.614Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-08-08T06:13:15.922Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions 200
+[debug] [2025-08-08T06:13:15.922Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-08-08T06:13:15.926Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-08-08T06:13:15.951Z] defaultcredentials: writing to file C:\Users\jaden\AppData\Roaming\firebase\skdhbegjk_gmail_com_application_default_credentials.json
+[debug] [2025-08-08T06:13:15.952Z] DEBUG: Setting GAC to C:\Users\jaden\AppData\Roaming\firebase\skdhbegjk_gmail_com_application_default_credentials.json
+[debug] [2025-08-08T06:13:15.953Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:13:15.953Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:13:15.953Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig [none]
+[debug] [2025-08-08T06:13:16.569Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig 200
+[debug] [2025-08-08T06:13:16.570Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig {"projectId":"twinow3-app","storageBucket":"twinow3-app.firebasestorage.app"}
+[debug] [2025-08-08T06:13:16.614Z] [functions] Watching "C:\Users\jaden\twinow3\functions" for Cloud Functions...
+[debug] [2025-08-08T06:13:16.625Z] Validating nodejs source
+[debug] [2025-08-08T06:13:17.905Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.4.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2025-08-08T06:13:17.905Z] Building nodejs source
+[debug] [2025-08-08T06:13:17.906Z] Failed to find version of module node: reached end of search path C:\Users\jaden\twinow3\functions\node_modules
+[warn] !  functions: Your requested "node" version "20" doesn't match your global version "22". Using node@22 from host. 
+[debug] [2025-08-08T06:13:17.908Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-08-08T06:13:17.915Z] Found firebase-functions binary at 'C:\Users\jaden\twinow3\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8301
+
+[debug] [2025-08-08T06:13:18.832Z] Got response from /__/functions.yaml {"endpoints":{"createUser":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"createUser"},"deleteUser":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"deleteUser"},"createCustomToken":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"callableTrigger":{},"entryPoint":"createCustomToken"},"api":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"httpsTrigger":{},"entryPoint":"api"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{}}
+[debug] [2025-08-08T06:13:22.896Z] [functions] Loaded functions definitions from source: createUser, deleteUser, createCustomToken, api.
+[debug] [2025-08-08T06:13:22.897Z] [functions[us-central1-createUser]] http function initialized (http://127.0.0.1:5000/twinow3-app/us-central1/createUser).
+[debug] [2025-08-08T06:13:22.897Z] [functions[us-central1-deleteUser]] http function initialized (http://127.0.0.1:5000/twinow3-app/us-central1/deleteUser).
+[debug] [2025-08-08T06:13:22.897Z] [functions[us-central1-createCustomToken]] http function initialized (http://127.0.0.1:5000/twinow3-app/us-central1/createCustomToken).
+[debug] [2025-08-08T06:13:22.898Z] [functions[us-central1-api]] http function initialized (http://127.0.0.1:5000/twinow3-app/us-central1/api).
+[info] i  functions: Loaded functions: createUser, deleteUser, createCustomToken, api 
+[warn] !  functions: The following emulators are not running, calls to these services will affect production: firestore, database, pubsub, storage, eventarc, tasks 
+[debug] [2025-08-08T06:15:15.657Z] ----------------------------------------------------------------------
+[debug] [2025-08-08T06:15:15.661Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\jaden\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js functions:shell
+[debug] [2025-08-08T06:15:15.661Z] CLI Version:   14.12.0
+[debug] [2025-08-08T06:15:15.661Z] Platform:      win32
+[debug] [2025-08-08T06:15:15.662Z] Node Version:  v22.17.1
+[debug] [2025-08-08T06:15:15.662Z] Time:          Fri Aug 08 2025 15:15:15 GMT+0900 (대한민국 표준시)
+[debug] [2025-08-08T06:15:15.662Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-08T06:15:15.858Z] Field "/functions" in "firebase.json" is possibly invalid: must be object
+[debug] [2025-08-08T06:15:15.859Z] Object "/functions/0" in "firebase.json" has unknown property: {"additionalProperty":"platform"}
+[debug] [2025-08-08T06:15:15.859Z] Field "/functions" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[debug] [2025-08-08T06:15:15.863Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-08T06:15:15.863Z] > authorizing via signed-in user (skdhbegjk@gmail.com)
+[debug] [2025-08-08T06:15:15.863Z] [iam] checking project twinow3-app for permissions ["firebase.projects.get"]
+[debug] [2025-08-08T06:15:15.864Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:15:15.864Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:15:15.865Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions [none]
+[debug] [2025-08-08T06:15:15.865Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions x-goog-quota-user=projects/twinow3-app
+[debug] [2025-08-08T06:15:15.865Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-08-08T06:15:16.293Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions 200
+[debug] [2025-08-08T06:15:16.293Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/twinow3-app:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-08-08T06:15:16.301Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-08-08T06:15:16.330Z] defaultcredentials: writing to file C:\Users\jaden\AppData\Roaming\firebase\skdhbegjk_gmail_com_application_default_credentials.json
+[debug] [2025-08-08T06:15:16.332Z] DEBUG: Setting GAC to C:\Users\jaden\AppData\Roaming\firebase\skdhbegjk_gmail_com_application_default_credentials.json
+[debug] [2025-08-08T06:15:16.332Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:15:16.332Z] Checked if tokens are valid: true, expires at: 1754634984812
+[debug] [2025-08-08T06:15:16.332Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig [none]
+[debug] [2025-08-08T06:15:17.045Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig 200
+[debug] [2025-08-08T06:15:17.046Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/twinow3-app/adminSdkConfig {"projectId":"twinow3-app","storageBucket":"twinow3-app.firebasestorage.app"}
+[debug] [2025-08-08T06:15:17.079Z] [functions] Watching "C:\Users\jaden\twinow3\functions" for Cloud Functions...
