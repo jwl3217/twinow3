@@ -1,3 +1,5 @@
+// 경로: src/components/AdminEmailEntry.jsx
+
 import React, { useState } from 'react';
 import { useNavigate }     from 'react-router-dom';
 import '../styles/SignUp.css'; // 기존 SignUp 스타일 재사용

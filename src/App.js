@@ -1,10 +1,10 @@
-/* src/App.js */
+// src/App.js
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebaseConfig';
-
+import PayCheckout           from './components/PayCheckout';
 import Home                   from './components/Home';
 import SignUp                 from './components/SignUp';
 import Feed                   from './components/Feed';
@@ -13,9 +13,7 @@ import PostDetail             from './components/PostDetail';
 import EditPost               from './components/EditPost';
 import MessageList            from './components/MessageList';
 import ChatRoom               from './components/ChatRoom';
-import Shop                   from './components/Shop';            // ✅ 유지
-// import EnterDepositor       from './components/EnterDepositor'; // ❌ 삭제
-// import ManualPayment        from './components/ManualPayment';  // ❌ 삭제
+import Shop                   from './components/Shop';
 import Profile                from './components/Profile';
 import EditProfile            from './components/EditProfile';
 import Withdraw               from './components/Withdraw';
@@ -76,10 +74,7 @@ export default function App() {
           <Route path="/post/:id/edit" element={<EditPost />} />
           <Route path="/messages"      element={<MessageList />} />
           <Route path="/chat/:roomId"  element={<ChatRoom />} />
-
-          {/* 코인 구매: EnterDepositor/ManualPayment 없이 Shop 하나로 처리 */}
           <Route path="/shop"          element={<Shop />} />
-
           <Route path="/profile"       element={<Profile />} />
           <Route path="/profile/edit"  element={<EditProfile />} />
           <Route path="/withdraw"      element={<Withdraw />} />
@@ -103,7 +98,7 @@ export default function App() {
             }
           />
           <Route path="/admin/switch" element={<AccountSwitchDashboard />} />
-
+          <Route path="/pay/checkout/:orderNo" element={<PayCheckout />} />
           {/* catch-all */}
           <Route path="*" element={<Navigate to="/feed" replace />} />
         </Routes>

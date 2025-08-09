@@ -1,3 +1,6 @@
+// src/components/AdminCreateUser.jsx
+
+
 import React, { useState } from 'react';
 import { useNavigate }     from 'react-router-dom';
 import { auth }            from '../firebaseConfig';

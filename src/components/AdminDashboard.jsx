@@ -1,4 +1,4 @@
-// 경로: src/components/AccountSwitchDashboard.jsx
+// 경로: src/components/AdminDashboard.jsx
 
 import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';

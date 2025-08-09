@@ -1,27 +1,19 @@
-
 {
+  "functions": [
+    {
+      "codebase": "default",
+      "source": "functions",
+      "runtime": "nodejs20",
+      "platform": "gcfv2",
+      "region": "asia-northeast3"
+    }
+  ],
   "hosting": {
     "public": "build",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
-      { "source": "/api/**",            "function": { "functionId": "api", "region": "asia-northeast3" } },
-      { "source": "/webhook/payaction", "function": { "functionId": "api", "region": "asia-northeast3" } },
+      { "source": "/api/**", "function": "api" },
       { "source": "**", "destination": "/index.html" }
     ]
-  },
-  "functions": [
-    {
-      "source": "functions",
-      "runtime": "nodejs20",
-      "codebase": "default",
-      "platform": "gcfv2",
-      "serviceConfig": {
-        "environmentVariables": {
-          "PAYACTION_API_KEY":     "ZDSK7NP8TSBN",
-          "PAYACTION_MALL_ID":     "1754495682975x949667080623358000",
-          "PAYACTION_WEBHOOK_KEY": "N3HQX68KSTY9"
-        }
-      }
-    }
-  ]
+  }
 }
