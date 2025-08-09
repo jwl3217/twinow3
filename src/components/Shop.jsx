@@ -77,25 +77,26 @@ export default function Shop() {
           </div>
         ))}
 
-        {myOrder && (
-          <div
-            className="shop-card shop-card--link"
-            onClick={() => navigate(`/my-order/${myOrder.id}`)}
-          >
-            <div className="shop-card-info">
-              <img src={coinImg} alt="coin" className="shop-card-img" />
-              <div className="shop-card-text">
-                <p className="shop-card-coins">
-                  나의 진행중 주문 · {myOrder.coins.toLocaleString()}개
-                </p>
-                <p className="shop-card-price">
-                  {myOrder.amount.toLocaleString()}원 · (입금확인 전)
-                </p>
-              </div>
-            </div>
-            <button className="shop-card-btn">자세히</button>
-          </div>
-        )}
+        {/* ▶ 나의 진행중 주문 카드: 이미지 제거 / 세로배치 / 중앙정렬 / 버튼 아래 */}
+{myOrder && (
+  <div className="shop-card shop-card--myorder">
+    <div className="shop-myorder-text">
+      <p className="shop-card-coins">
+        나의 진행중 주문 · {myOrder.coins.toLocaleString()}개
+      </p>
+      <p className="shop-card-price">
+        {myOrder.amount.toLocaleString()}원 · (입금확인 전)
+      </p>
+    </div>
+    <button
+      className="shop-card-btn"
+      onClick={() => navigate(`/my-order/${myOrder.id}`)}
+    >
+      자세히
+    </button>
+  </div>
+)}
+
 
         {sel && (
           <>

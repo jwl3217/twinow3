@@ -83,10 +83,9 @@ export default function ManualCheckout() {
       <div className="checkout-body">
         <div className="checkout-card">
           <p className="checkout-text">
-            <b>코인 {coins.toLocaleString()}개</b>의 주문이 생성되었습니다.
+            <b>코인 {coins.toLocaleString()}개</b> 주문하기
           </p>
-          <p className="checkout-text">
-            카카오뱅크 <b>3333-34-7503700</b> 이재원(트위나우) 계좌로{' '}
+          <p className="checkout-text">{' '}
             <b>{amount.toLocaleString()}원</b>을 입금하실 <b>입금자명</b>을 적고 확인을 눌러 주세요.
           </p>
 

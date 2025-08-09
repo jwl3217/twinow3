@@ -98,11 +98,11 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #1da1f2;
+  background: #6fc8ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+
   cursor: pointer;
 }
 

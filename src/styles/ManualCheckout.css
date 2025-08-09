@@ -24,7 +24,27 @@
   background: none; border: none;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; padding: 0; margin: 0;
+
+  /* ▼ 추가: 반응형 버튼 피드백 */
+  border-radius: 8px;
+  transition: background 0.2s;
 }
+/* 데스크톱 등 hover 가능한 환경에서만 hover 효과 */
+@media (hover: hover) and (pointer: fine) {
+  .checkout-header .back-button:hover {
+    background: #eee;
+  }
+}
+/* 터치/클릭 시 피드백 */
+.checkout-header .back-button:active {
+  background: #ddd;
+}
+/* 키보드 포커스 접근성 */
+.checkout-header .back-button:focus-visible {
+  outline: 2px solid #1da1f2;
+  outline-offset: 2px;
+}
+
 .checkout-header .back-btn-icon { width: 24px; height: 24px; }
 .checkout-header .header-title {
   position: absolute;
@@ -60,7 +80,8 @@
   flex-direction: column;
 }
 
-.checkout-text { margin: 0 0 8px; line-height: 1.5; }
+.checkout-text { margin: 0 0 8px; line-height: 1.5;
+ text-align: center; }
 
 .checkout-field {
   margin-top: 12px;
@@ -68,7 +89,7 @@
   flex-direction: column;
   gap: 6px;
 }
-.checkout-field label { font-weight: 600; }
+.checkout-field label { font-weight: 600;  }
 .checkout-field input {
   padding: 10px;
   border: 1px solid #ddd; border-radius: 8px;

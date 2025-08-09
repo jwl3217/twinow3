@@ -1,12 +1,12 @@
 // src/components/MyOrder.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   doc,
   onSnapshot,
   getDoc,
   writeBatch,
-  serverTimestamp // ★ 추가
+  serverTimestamp
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebaseConfig';
@@ -20,6 +20,9 @@ export default function MyOrder() {
   const [order, setOrder] = useState(null);
   const [askCancel, setAskCancel] = useState(false);
 
+  // 내가 직접 취소했는지 여부(스냅샷에서 "주문을 찾을 수 없습니다" 경고 방지)
+  const canceledByMeRef = useRef(false);
+
   // 로그인 체크
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => {
@@ -28,19 +31,17 @@ export default function MyOrder() {
     return () => unsubAuth();
   }, [nav]);
 
-  // BottomNav 숨김
-  useEffect(() => {
-    const b = document.querySelector('.bottom-nav');
-    if (b) b.style.display = 'none';
-    return () => { if (b) b.style.display = ''; };
-  }, []);
-
   // 주문 구독
   useEffect(() => {
     if (!id) return nav('/shop', { replace: true });
     const ref = doc(db, 'order', id);
     const unsub = onSnapshot(ref, (snap) => {
       if (!snap.exists()) {
+        // 내가 방금 취소해서 문서가 사라진 경우: 안내만 하고 이동(중복 경고 방지)
+        if (canceledByMeRef.current) {
+          canceledByMeRef.current = false; // 1회성 플래그
+          return; // cancelOrder에서 이미 안내 및 이동 완료
+        }
         alert('주문을 찾을 수 없습니다.');
         return nav('/shop', { replace: true });
       }
@@ -59,9 +60,11 @@ export default function MyOrder() {
   const cancelOrder = async () => {
     if (!order) return;
     try {
+      canceledByMeRef.current = true; // 내가 취소 시작
       const orderRef = doc(db, 'order', order.id);
       const snap = await getDoc(orderRef);
       if (!snap.exists()) {
+        canceledByMeRef.current = false;
         alert('이미 취소되었거나 존재하지 않습니다.');
         setAskCancel(false);
         return;
@@ -73,23 +76,26 @@ export default function MyOrder() {
       const batch = writeBatch(db);
       batch.set(canceledRef, {
         ...data,
-        canceledAt: serverTimestamp() // ★ 취소 시간 기록
+        canceledAt: serverTimestamp()
       });
       batch.delete(orderRef);
       await batch.commit();
 
       setAskCancel(false);
+      alert('주문이 취소되었습니다.');
       nav('/shop', { replace: true });
     } catch (e) {
       console.error(e);
+      canceledByMeRef.current = false;
       alert('주문 취소 중 오류가 발생했습니다.');
     }
   };
 
   if (!order) return null;
 
-  const statusText  = order.orderstate === 'complete' ? '입금확인 완료' : '입금확인 전';
-  const statusClass = order.orderstate === 'complete' ? 'done' : 'pending';
+  const isDone = order.orderstate === 'complete';
+  const statusText = isDone ? '입금확인 완료' : '입금확인 전';
+  const statusClass = isDone ? 'done' : 'pending';
 
   return (
     <div className="mo-container">
@@ -114,16 +120,18 @@ export default function MyOrder() {
             입금자명이 정확히 <b>{order.depositorName}</b>이어야 합니다.
           </p>
           <p className="mo-text">
-            입금 후 24시간 이내에 코인 <b>{order.coins.toLocaleString()}개</b>가 충전됩니다.
+            입금 후 24시간 이내에 코인 <b>{order.coins.toLocaleString()}개</b>가
+            충전됩니다.
           </p>
 
+          {/* 상태: 빨강/파랑 굵은 텍스트 + 약한 테두리 + 가운데 정렬 */}
           <div className={`mo-status ${statusClass}`}>{statusText}</div>
 
           <button
             className="mo-cancel-btn"
             onClick={() => setAskCancel(true)}
-            disabled={order.orderstate === 'complete'}
-            title={order.orderstate === 'complete' ? '완료된 주문은 취소할 수 없습니다.' : undefined}
+            disabled={isDone}
+            title={isDone ? '완료된 주문은 취소할 수 없습니다.' : undefined}
           >
             주문 취소
           </button>
