@@ -6,7 +6,12 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
-// 환경변수 (firebase.json에 serviceConfig.environmentVariables로 넣어둔 값 사용)
+// 디버그 로그
+app.use("/api", (req, _res, next) => {
+  logger.info("HIT", { method: req.method, path: req.path });
+  next();
+});
+
 const {
   PAYACTION_API_KEY,
   PAYACTION_MALL_ID,
@@ -16,99 +21,60 @@ const {
   BANK_HOLDER,
 } = process.env;
 
-// 1) 헬스체크
-app.get("/api/health", (req, res) => {
+// 헬스체크
+app.get("/api/health", (_req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
 });
 
-// 2) 주문 생성 → 페이액션 /order 로 프록시
+// 주문 생성 프록시
 app.post("/api/payaction/order", async (req, res) => {
   try {
     const { order_number, amount, depositor_name } = req.body || {};
-
     if (!order_number || !amount || !depositor_name) {
       return res.status(400).json({
         ok: false,
-        error: "order_number, amount, depositor_name 모두 필요합니다.",
+        error: "order_number, amount, depositor_name 모두 필요",
         got: { order_number, amount, depositor_name },
       });
     }
 
-    // Node 20에선 fetch 내장
     const r = await fetch("https://api.payaction.app/order", {
       method: "POST",
       headers: {
         "content-type": "application/json",
         "x-api-key": PAYACTION_API_KEY || "",
-        "x-mall-id": PAYACTION_MALL_ID || "",
+        "x-mall-id": PAYACTION_MALL_ID || ""
       },
-      body: JSON.stringify({
-        order_number,
-        amount,
-        depositor_name,
-      }),
+      body: JSON.stringify({ order_number, amount, depositor_name })
     });
 
-    const text = await r.text(); // 본문 원문 확보
-    logger.info("PayAction /order response", {
-      status: r.status,
-      body: text?.slice?.(0, 1000),
-    });
+    const text = await r.text();
+    logger.info("PayAction /order", { status: r.status, body: text?.slice?.(0, 800) });
 
-    // 응답 그대로 전달 (JSON이 아니면 텍스트로)
-    try {
-      const json = JSON.parse(text);
-      return res.status(r.status).json(json);
-    } catch {
-      return res.status(r.status).type("text/plain").send(text);
-    }
-  } catch (err) {
-    logger.error("order proxy error", err);
-    return res.status(500).json({ ok: false, error: String(err?.message || err) });
+    try { return res.status(r.status).json(JSON.parse(text)); }
+    catch { return res.status(r.status).type("text/plain").send(text); }
+  } catch (e) {
+    logger.error("order proxy error", e);
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 });
 
-// 3) 매칭완료 웹훅 수신 (페이액션 대시보드에 URL 등록)
-app.post("/api/payaction/webhook", async (req, res) => {
+// 매칭완료 웹훅
+app.post("/api/payaction/webhook", (req, res) => {
   const key = req.get("x-webhook-key");
-  if (!key || key !== PAYACTION_WEBHOOK_KEY) {
-    logger.warn("Webhook rejected: invalid key", { got: key });
-    // 재전송 폭주 방지: 200으로 무시 처리
-    return res.status(200).json({ status: "ignored" });
+  if (key !== PAYACTION_WEBHOOK_KEY) {
+    logger.warn("Webhook rejected", { got: key });
+    return res.status(200).json({ status: "ignored" }); // 재전송 폭주 방지
   }
-
-  logger.info("Webhook received", {
-    headers: {
-      "x-mall-id": req.get("x-mall-id"),
-      "x-trace-id": req.get("x-trace-id"),
-    },
-    body: req.body,
+  logger.info("Webhook OK", {
+    headers: { "x-mall-id": req.get("x-mall-id"), "x-trace-id": req.get("x-trace-id") },
+    body: req.body
   });
-
-  // TODO: 여기서 order_number 등으로 주문 찾고 코인 적립 처리
+  // TODO: order_number 찾아서 코인 적립
   return res.json({ status: "success" });
 });
 
-// 4) (선택) 페이액션 API 간이 핑
-app.get("/api/payaction/ping", async (_req, res) => {
-  try {
-    const r = await fetch("https://api.payaction.app/order", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": PAYACTION_API_KEY || "",
-        "x-mall-id": PAYACTION_MALL_ID || "",
-      },
-      body: JSON.stringify({}),
-    });
-    const text = await r.text();
-    return res.status(200).json({ status: r.status, body: text?.slice?.(0, 500) });
-  } catch (e) {
-    return res.status(500).json({ error: String(e?.message || e) });
-  }
-});
+// 라우트 미스
+app.use((req, res) => res.status(404).type("text/plain").send(`NO MATCH: ${req.method} ${req.path}`));
 
-exports.api = onRequest(
-  { region: "asia-northeast3", cors: false, maxInstances: 10 },
-  app
-);
+exports.api = onRequest({ region: "asia-northeast3", cors: false }, app);

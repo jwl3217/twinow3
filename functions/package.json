@@ -2,10 +2,10 @@
   "name": "functions",
   "private": true,
   "main": "index.js",
+  "type": "commonjs",
   "engines": {
     "node": "20"
   },
-  "type": "commonjs",
   "dependencies": {
     "express": "^4.21.2",
     "firebase-admin": "^13.4.0",

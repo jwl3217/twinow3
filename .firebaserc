@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "twinow3-app"
-  }
+    "default": "twinow3-app",
+    "d": "twinow3-app"
+  },
+  "targets": {},
+  "etags": {}
 }
