@@ -1,61 +1,52 @@
-// src/components/Shop.jsx
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { auth } from "../firebaseConfig";
-import coinImg from "../assets/coin.png";
-import backArrow from "../assets/back-arrow.png";
-import "../styles/Shop.css";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import coinImg from '../assets/coin.png';
+import backArrow from '../assets/back-arrow.png';
+import '../styles/Shop.css';
+
+const PACKS = [
+  { coins: 15000, amount: 3500,  label: '3,500원(강추)' },
+  { coins: 20000, amount: 12000, label: '12,000원' },
+  { coins: 30000, amount: 20000, label: '20,000원' },
+  { coins: 50000, amount: 35000, label: '35,000원' },
+];
 
 export default function Shop() {
   const navigate = useNavigate();
-
-  const options = [
-    { coins: 15000, amount: 3500,  label: "3,500원(강추)" },
-    { coins: 20000, amount: 12000, label: "12,000원" },
-    { coins: 30000, amount: 20000, label: "20,000원" },
-    { coins: 50000, amount: 35000, label: "35,000원" },
-  ];
-
-  const [sel, setSel] = useState(null);
+  const [sel, setSel] = useState(null); // {coins, amount}
   const [payer, setPayer] = useState("");
 
-  const closeModal = () => {
-    setSel(null);
-    setPayer("");
-  };
-
   const createOrder = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      alert("로그인이 필요합니다.");
-      navigate("/", { replace: true });
-      return;
-    }
+    if (!sel) return;
     if (!payer.trim()) {
       alert("입금자명을 입력해 주세요.");
       return;
     }
+    const orderNo = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
     try {
       const r = await fetch("/api/payaction/order", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          uid: user.uid,
-          coins: sel.coins,
+          order_number: orderNo,
           amount: sel.amount,
-          depositorName: payer.trim(),
+          depositor_name: payer.trim(),
         }),
       });
-      const data = await r.json();
-      if (!data.ok) throw new Error(data.error || "order_failed");
 
-      // ✅ 쿼리도 함께 전달(새로고침 대비)
-      const q = `?coins=${sel.coins}&amount=${sel.amount}&payer=${encodeURIComponent(
-        payer.trim()
-      )}`;
+      const text = await r.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch { /* not json */ }
 
-      closeModal();
-      navigate(`/pay/checkout/${data.order_number}${q}`, {
+      if (!r.ok) {
+        // 서버가 프록시한 에러 메시지 그대로 노출
+        alert(`주문 생성 실패 (${r.status})\n${text}`);
+        return;
+      }
+
+      // 성공 → 결제안내 페이지로 이동
+      navigate(`/checkout/${orderNo}?coins=${sel.coins}&amount=${sel.amount}&payer=${encodeURIComponent(payer.trim())}`, {
         state: {
           coins: sel.coins,
           amount: sel.amount,
@@ -66,8 +57,9 @@ export default function Shop() {
         },
       });
     } catch (e) {
-      console.error(e);
-      alert("주문 생성 중 오류가 발생했습니다.");
+      alert(`주문 생성 중 오류: ${e?.message || e}`);
+    } finally {
+      setSel(null);
     }
   };
 
@@ -83,51 +75,48 @@ export default function Shop() {
       <div className="shop-separator" />
 
       <div className="shop-body">
-        {options.map((o) => (
-          <div key={`${o.coins}-${o.amount}`} className="shop-card">
+        {/* 입금자명 입력 */}
+        <div className="shop-card" style={{ marginBottom: 16 }}>
+          <div style={{ width: "100%" }}>
+            <p style={{ margin: "0 0 8px", fontWeight: 600 }}>입금자명</p>
+            <input
+              placeholder="입금하실 이름을 입력"
+              value={payer}
+              onChange={(e) => setPayer(e.target.value)}
+              style={{ width: "100%", padding: 10, border: "1px solid #ddd", borderRadius: 8 }}
+            />
+          </div>
+        </div>
+
+        {/* 상품 카드 */}
+        {PACKS.map(({ coins, amount, label }) => (
+          <div key={coins} className="shop-card">
             <div className="shop-card-info">
               <img src={coinImg} alt="coin" className="shop-card-img" />
               <div className="shop-card-text">
-                <p className="shop-card-coins">{o.coins.toLocaleString()}개</p>
-                <p className="shop-card-price">{o.label}</p>
+                <p className="shop-card-coins">{coins.toLocaleString()}개</p>
+                <p className="shop-card-price">{label}</p>
               </div>
             </div>
-            <button className="shop-card-btn" onClick={() => setSel(o)}>
+            <button className="shop-card-btn" onClick={() => setSel({ coins, amount })}>
               구매하기
             </button>
           </div>
         ))}
 
+        {/* 확인 모달 */}
         {sel && (
           <>
-            <div className="modal-overlay" onClick={closeModal} />
+            <div className="modal-overlay" onClick={() => setSel(null)} />
             <div className="confirm-modal">
-              <p style={{ marginBottom: 8 }}>
-                코인 {sel.coins.toLocaleString()}개
+              <p>
+                코인 {sel.coins.toLocaleString()}개를
                 <br />
-                ({sel.amount.toLocaleString()}원)
-                <br />
-                구매하시겠습니까?
+                {sel.amount.toLocaleString()}원에 구매하시겠습니까?
               </p>
-
-              <input
-                placeholder="입금자명 (예: 홍길동)"
-                value={payer}
-                onChange={(e) => setPayer(e.target.value)}
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  margin: "8px 0 12px",
-                  padding: "10px",
-                  border: "1px solid #ccc",
-                  borderRadius: 6,
-                  fontSize: 16,
-                }}
-              />
-
               <div className="confirm-buttons">
-                <button onClick={createOrder} disabled={!payer.trim()}>네</button>
-                <button onClick={closeModal}>아니요</button>
+                <button onClick={createOrder}>네</button>
+                <button onClick={() => setSel(null)}>아니요</button>
               </div>
             </div>
           </>
