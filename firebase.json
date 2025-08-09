@@ -1,46 +1,17 @@
 {
   "functions": [
     {
-      "codebase": "default",
       "source": "functions",
-      "runtime": "nodejs20",
-      "platform": "gcfv1",
-      "serviceConfig": {
-        "environmentVariables": {
-          "PAYACTION_API_KEY":     "ZDSK7NP8TSBN",
-          "PAYACTION_MALL_ID":     "1754495682975x949667080623358000",
-          "PAYACTION_WEBHOOK_KEY": "N3HQX68KSTY9",
-          "BANK_NAME":             "하나은행",
-          "BANK_ACCOUNT":          "31191046973307",
-          "BANK_HOLDER":           "이재원"
-        }
-      }
+      "runtime": "nodejs20"
     }
   ],
   "hosting": {
     "public": "build",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
-      {
-        "source": "/api/**",
-        "function": "api"
-      },
-      {
-        "source": "/pay/approve",
-        "function": "api"
-      },
-      {
-        "source": "/webhook/payaction",
-        "function": "api"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
+      { "source": "/api/**", "function": "api" },
+      { "source": "/webhook/payaction", "function": "api" },
+      { "source": "**", "destination": "/index.html" }
     ]
   }
 }

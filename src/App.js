@@ -1,10 +1,9 @@
-// src/App.js
-
+/* src/App.js */
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate }   from 'react-router-dom';
-import { onAuthStateChanged }        from 'firebase/auth';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { auth, db }                  from './firebaseConfig';
+import { auth, db } from './firebaseConfig';
 
 import Home                   from './components/Home';
 import SignUp                 from './components/SignUp';
@@ -14,9 +13,9 @@ import PostDetail             from './components/PostDetail';
 import EditPost               from './components/EditPost';
 import MessageList            from './components/MessageList';
 import ChatRoom               from './components/ChatRoom';
-import Shop                   from './components/Shop';
-import EnterDepositor         from './components/EnterDepositor';
-import ManualPayment          from './components/ManualPayment';  // ← 여기
+import Shop                   from './components/Shop';            // ✅ 유지
+// import EnterDepositor       from './components/EnterDepositor'; // ❌ 삭제
+// import ManualPayment        from './components/ManualPayment';  // ❌ 삭제
 import Profile                from './components/Profile';
 import EditProfile            from './components/EditProfile';
 import Withdraw               from './components/Withdraw';
@@ -33,7 +32,7 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAdmin, setIsAdmin]         = useState(false);
 
-  // 로그인 상태 및 admin 클레임 체크
+  // 로그인 상태 + admin 클레임
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
@@ -47,7 +46,7 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // 채팅방 읽지 않은 메시지 카운트
+  // 읽지 않은 채팅방 개수
   useEffect(() => {
     if (!user) return;
     const roomsQ = query(
@@ -78,20 +77,15 @@ export default function App() {
           <Route path="/messages"      element={<MessageList />} />
           <Route path="/chat/:roomId"  element={<ChatRoom />} />
 
-          {/* 코인 구매 흐름 */}
-          <Route path="/shop"                        element={<Shop />} />
-          <Route path="/enter-depositor/:amount"     element={<EnterDepositor />} />
-          <Route
-            path="/payment/:amount/:depositorName"
-            element={<ManualPayment />}             // ← 무통장 입금 안내 컴포넌트
-          />
+          {/* 코인 구매: EnterDepositor/ManualPayment 없이 Shop 하나로 처리 */}
+          <Route path="/shop"          element={<Shop />} />
 
           <Route path="/profile"       element={<Profile />} />
           <Route path="/profile/edit"  element={<EditProfile />} />
           <Route path="/withdraw"      element={<Withdraw />} />
           <Route path="/report/:id"    element={<Report />} />
 
-          {/* 관리자 전용 페이지 */}
+          {/* 관리자 */}
           <Route
             path="/admin"
             element={
@@ -108,13 +102,13 @@ export default function App() {
               </ProtectedAdminRoute>
             }
           />
-          {/* 계정 전환 대시보드는 공개 */}
           <Route path="/admin/switch" element={<AccountSwitchDashboard />} />
 
-          {/* catch-all → 피드로 리디렉트 */}
+          {/* catch-all */}
           <Route path="*" element={<Navigate to="/feed" replace />} />
         </Routes>
       </div>
+
       <BottomNav unreadCount={unreadCount} currentUser={user} />
     </>
   );
