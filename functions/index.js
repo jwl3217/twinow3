@@ -8,7 +8,7 @@ const admin   = require('firebase-admin');
 const { onRequest } = require('firebase-functions/v2/https');
 
 if (!admin.apps.length) {
-  admin.initializeApp(); // default credentials
+  admin.initializeApp();
 }
 const db = admin.firestore();
 
@@ -16,13 +16,13 @@ const app = express();
 app.use(cors({ origin: ['https://twinow.kr', 'http://localhost:3000'], credentials: true }));
 app.use(express.json());
 
-/** 헬스체크 */
-app.get('/health', (req, res) => {
+/** 헬스체크: https://twinow.kr/api/health */
+app.get('/api/health', (req, res) => {
   res.json({ ok: true, ts: new Date().toISOString() });
 });
 
 /** 주문 생성: 프론트에서 /api/order 로 POST */
-app.post('/order', async (req, res) => {
+app.post('/api/order', async (req, res) => {
   try {
     const {
       merchantUid, amount, depositorName,
@@ -87,22 +87,19 @@ app.post('/order', async (req, res) => {
   }
 });
 
-/** 페이액션 웹훅 수신: 대시보드에 https://twinow.kr/webhook/payaction 등록 */
+/** 페이액션 웹훅: 대시보드에 https://twinow.kr/webhook/payaction 등록 */
 app.post('/webhook/payaction', async (req, res) => {
   try {
     const incomingKey  = req.get('x-webhook-key');
     const incomingMall = req.get('x-mall-id');
 
-    // 헤더 검증
     if (incomingKey !== process.env.PAYACTION_WEBHOOK_KEY ||
         incomingMall !== process.env.PAYACTION_MALL_ID) {
       console.warn('Webhook auth failed');
-      // 그래도 성공 반환해서 재전송 폭주 방지 가능하지만, 여기선 실패 반환
       return res.status(401).json({ status: 'error' });
     }
 
     const event = req.body || {};
-    // 문서에 오는 키 이름이 `merchant_uid` 기준. 혹시 대비해서 둘 다 지원
     const merchantUid = event.merchant_uid || event.merchantUid;
     const status      = event.status;
 
@@ -113,12 +110,10 @@ app.post('/webhook/payaction', async (req, res) => {
     const payRef = db.collection('payments').doc(merchantUid);
     const snap   = await payRef.get();
     if (!snap.exists) {
-      // 주문이 없어도 성공 응답
       return res.json({ status: 'success' });
     }
     const order = snap.data();
 
-    // 상태 업데이트 + 로그 적재
     const update = {
       status,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -128,7 +123,6 @@ app.post('/webhook/payaction', async (req, res) => {
       }),
     };
 
-    // 매칭/완료 시 코인 지급
     if ((status === 'matched' || status === 'completed') && order.userId) {
       const userRef = db.collection('users').doc(order.userId);
       await db.runTransaction(async (tx) => {
@@ -143,9 +137,11 @@ app.post('/webhook/payaction', async (req, res) => {
     return res.json({ status: 'success' });
   } catch (err) {
     console.error('webhook error', err);
-    // 재전송 정책을 고려하면 성공 반환하는 편이 안전
     return res.json({ status: 'success' });
   }
 });
 
-exports.api = onRequest({ region: 'asia-northeast3', timeoutSeconds: 60, memory: '512Mi' }, app);
+exports.api = onRequest(
+  { region: 'asia-northeast3', timeoutSeconds: 60, memory: '512Mi' },
+  app
+);
