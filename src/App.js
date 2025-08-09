@@ -19,6 +19,9 @@ import EditProfile            from './components/EditProfile';
 import Withdraw               from './components/Withdraw';
 import Report                 from './components/Report';
 import BottomNav              from './components/BottomNav';
+import ManualCheckout from './components/ManualCheckout';
+import MyOrder from './components/MyOrder';
+
 
 import AdminPage              from './components/AdminPage';
 import AdminEmailEntry        from './components/AdminEmailEntry';
@@ -79,7 +82,8 @@ export default function App() {
           <Route path="/profile/edit"  element={<EditProfile />} />
           <Route path="/withdraw"      element={<Withdraw />} />
           <Route path="/report/:id"    element={<Report />} />
-
+          <Route path="/checkout/manual" element={<ManualCheckout />} />
+          <Route path="/my-order/:id" element={<MyOrder />} />
           {/* 관리자 */}
           <Route
             path="/admin"
