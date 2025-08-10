@@ -19,7 +19,7 @@ import backArrow from '../assets/back-arrow.png';
 import '../styles/MyOrder.css';
 
 // ▼ 관리자 UID 넣어주세요
-const ADMIN_UID = '8DRYeKhz3KUBOWp3y1gtI3R86N23';
+const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
 
 export default function MyOrder() {
   const { id } = useParams();
