@@ -2,7 +2,7 @@
 
 .feed-container {
   padding: 16px;
-  padding-bottom: 80px; /* 하단 내비 여유 공간 */
+  padding-bottom: 30px; /* 하단 내비 여유 공간 */
   background: hsl(0, 0%, 96%);
   min-height: 100vh;
 }

@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   height: 60px;
-  background-color: #ffffff;
+  background-color: hsl(0, 0%, 96%); /* ← 배경색 변경 */
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -29,8 +29,11 @@
 }
 
 .profile-icon {
-    object-fit: cover;
-    border-radius: 50%;
+  object-fit: cover;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  border: 1px solid #e1e1e1; /* ← 회색 원형 테두리 추가 */
 }
 
 .icon-badge-wrapper {
