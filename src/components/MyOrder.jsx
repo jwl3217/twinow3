@@ -19,7 +19,7 @@ import backArrow from '../assets/back-arrow.png';
 import '../styles/MyOrder.css';
 
 // ▼ 관리자 UID 넣어주세요
-const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
+const ADMIN_UID = '8DRYeKhz3KUBOWp3y1gtI3R86N23';
 
 export default function MyOrder() {
   const { id } = useParams();
@@ -134,7 +134,7 @@ export default function MyOrder() {
   if (!order) return null;
 
   const isDone = order.orderstate === 'complete';
-  const statusText = isDone ? '입금확인 후' : '입금확인 전';
+  const statusText = isDone ? '입금확인 완료' : '입금확인 전';
   const statusClass = isDone ? 'done' : 'pending';
 
   return (
@@ -200,8 +200,8 @@ export default function MyOrder() {
                 <p>입금후 주문을 실수로 취소한 경우 환불절차를 따라야 합니다. <b>문의하기</b> 버튼을 클릭해주세요.</p>
               </div>
               <div className="mo-faq-item">
-                <strong>• 입금자명을 잘못 적었어요.</strong>
-                <p><b>문의하기</b> 버튼을 클릭하신 후 잘못 적으신 입금자명을 입력해 주세요.</p>
+                <strong>• 입금자명 또는 금액을 잘못 적었어요.</strong>
+                <p><b>문의하기</b> 버튼을 클릭하신 후 입금하신 입금자명을 말씀해 주세요.</p>
               </div>
               <div className="mo-faq-item">
                 <strong>• 환불 문의</strong>
