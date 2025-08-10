@@ -1,11 +1,11 @@
 // 경로: src/components/Home.jsx
-
 import React, { useEffect } from 'react';
 import { useNavigate }      from 'react-router-dom';
 import {
   GoogleAuthProvider,
   TwitterAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  onAuthStateChanged,               // ★ 추가
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db }        from '../firebaseConfig';
@@ -22,32 +22,57 @@ export default function Home() {
     return () => { if (nav) nav.style.display = ''; };
   }, []);
 
+  // ★ 이미 로그인된 경우 자동 리다이렉트
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) return;
+      try {
+        const snap = await getDoc(doc(db, 'users', u.uid));
+        if (!snap.exists()) {
+          // 유저 문서가 없으면 가입완료로
+          navigate('/signup', { replace: true });
+          return;
+        }
+        const data = snap.data();
+        // 프로필 완성 여부에 따라 분기
+        if (data.nickname && data.gender && data.region) {
+          navigate('/feed', { replace: true });
+        } else {
+          navigate('/signup', { replace: true });
+        }
+      } catch {
+        // 문제 생겨도 홈에 머무르도록 조용히 무시
+      }
+    });
+    return () => unsub();
+  }, [navigate]);
+
   const handleProviderLogin = async provider => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      const u      = result.user;
+      const result  = await signInWithPopup(auth, provider);
+      const u       = result.user;
       const userRef = doc(db, 'users', u.uid);
-      const snap   = await getDoc(userRef);
+      const snap    = await getDoc(userRef);
 
       if (!snap.exists()) {
-        // 신규 가입자: Firestore 에 프로필 문서 생성 (authProvider 기록)
+        // 신규 가입자 기본 문서 생성
         await setDoc(userRef, {
-          uid:           u.uid,
-          displayName:   u.displayName || '',
-          photoURL:      u.photoURL || null,
-          nickname:      '',
-          gender:        '',
-          age:           null,
-          region:        '',
-          coins:         200,
-          email:         u.email,
-          authProvider:  result.providerId,  // e.g. 'google.com' or 'twitter.com'
-          createdAt:     serverTimestamp()
+          uid:          u.uid,
+          displayName:  u.displayName || '',
+          photoURL:     u.photoURL || null,
+          nickname:     '',
+          gender:       '',
+          age:          null,
+          region:       '',
+          coins:        200,
+          email:        u.email,
+          authProvider: result.providerId,  // 'google.com' | 'twitter.com'
+          createdAt:    serverTimestamp()
         });
         return navigate('/signup');
       }
 
-      // 기존 가입자: 프로필 완성 여부로 분기
+      // 기존 가입자 분기
       const data = snap.data();
       if (data.nickname && data.gender && data.region) {
         navigate('/feed');
@@ -63,9 +88,8 @@ export default function Home() {
   return (
     <div className="home-container">
       <img src={twinowLogo} alt="TwiNow 로고" className="logo" />
-      <h1>TwiNow</h1>
       <p style={{ textAlign: 'center', margin: '20px 0 5px', color: '#555' }}>
-        트위나우는 트위터와 비슷한a
+        트위나우는 트위터와 비슷한
       </p>
       <p style={{ textAlign: 'center', margin: '0 0 20px', color: '#555' }}>
         온라인 채팅 커뮤니티 플랫폼입니다.

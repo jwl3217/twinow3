@@ -1,5 +1,4 @@
 // src/components/Profile.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate }               from 'react-router-dom';
 import { auth, db }                  from '../firebaseConfig';
@@ -87,6 +86,17 @@ export default function Profile() {
           {userData.nickname}님의 코인은 {userData.coins}개입니다
         </p>
 
+        {/* ✅ 관리자 전용 버튼 */}
+        {isAdmin && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() => navigate('/admin/switch')}
+          >
+            대시보드로 이동
+          </button>
+        )}
+
         <button
           type="button"
           className="btn"
@@ -121,11 +131,7 @@ export default function Profile() {
 
       {showLogoutConfirm && (
         <div className="logout-modal-overlay">
-          <div
-            className="logout-modal"
-            role="dialog"
-            aria-modal="true"
-          >
+          <div className="logout-modal" role="dialog" aria-modal="true">
             <p>정말 로그아웃하시겠습니까?</p>
             <div className="logout-modal-buttons">
               <button
