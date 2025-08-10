@@ -9,7 +9,7 @@
   box-sizing: border-box;
 }
 
-/* ===== 헤더 (MessageList와 동일 레이아웃) ===== */
+/* ===== 헤더 ===== */
 .mo-header {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -22,73 +22,50 @@
   z-index: 10;
 }
 
-/* 뒤로가기 버튼: 반응형 hover/active 효과 포함 */
+/* 반응형 뒤로가기 버튼 */
 .mo-back-button {
-  width: 40px;
-  height: 40px;
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  margin: 0;
+  width: 40px; height: 40px;
+  background: none; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0; margin: 0;
   border-radius: 8px;
   transition: background 0.2s;
 }
-
-/* 데스크톱 등 hover 가능한 환경에서만 hover 효과 */
 @media (hover: hover) and (pointer: fine) {
-  .mo-back-button:hover {
-    background: #eee;
-  }
+  .mo-back-button:hover { background: #eee; }
 }
-
-/* 터치/클릭 시 피드백 */
-.mo-back-button:active {
-  background: #ddd;
-}
-
-/* 키보드 포커스 접근성 */
+.mo-back-button:active { background: #ddd; }
 .mo-back-button:focus-visible {
-  outline: 2px solid #1da1f2;
-  outline-offset: 2px;
+  outline: 2px solid #1da1f2; outline-offset: 2px;
 }
-
-.mo-back-btn-icon {
-  width: 24px;
-  height: 24px;
-}
+.mo-back-btn-icon { width: 24px; height: 24px; }
 
 .mo-header-title {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
+  left: 50%; transform: translateX(-50%);
+  font-size: 18px; font-weight: bold; color: #333;
   pointer-events: none;
 }
+
+/* 헤더 안 상태표시(색 유지) */
+.mo-status-inline {
+  font-weight: 700;
+}
+.mo-status-inline.pending { color: #e0245e; } /* 빨강 */
+.mo-status-inline.done    { color: #1da1f2; } /* 파랑 */
 
 /* 분리선 */
 .mo-separator {
   position: fixed;
-  top: 70px;
-  left: 0; right: 0;
-  height: 1px;
-  background: #ddd;
-  z-index: 9;
+  top: 70px; left: 0; right: 0;
+  height: 1px; background: #ddd; z-index: 9;
 }
 
 /* 본문 */
 .mo-body {
   position: absolute;
-  top: 71px;
-  bottom: 0;
-  left: 0; right: 0;
+  top: 71px; bottom: 0; left: 0; right: 0;
   overflow-y: auto;
-  overflow-x: hidden;
   padding: 16px;
   background: #f5f5f5;
   box-sizing: border-box;
@@ -103,83 +80,69 @@
   border: 1px solid #ddd;
 }
 
-.mo-text {
-  margin: 0 0 8px 0;
-  line-height: 1.6;
-  color: #333;
-}
+.mo-text { margin: 0 0 8px 0; line-height: 1.6; color: #333; }
 
-/* 상태: 가운데 정렬 + 약한 테두리 + 굵은 텍스트, 색상(빨강/파랑) */
-.mo-status {
-  display: block;
-  margin: 12px auto 0;
-  padding: 8px 12px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 700;
-  background: #fff;
-}
-.mo-status.pending { color: #e0245e; border-color: rgba(224,36,94,0.35); }
-.mo-status.done    { color: #1da1f2; border-color: rgba(29,161,242,0.35); }
+/* (이전 .mo-status 블록은 미사용) */
 
 /* 취소 버튼 */
 .mo-cancel-btn {
- display: block;
-  margin-top: 20px;
+  display: block;
+  margin: 20px auto 6px;
   padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #dc3545;
-  color: #fff;
-  font-size: 14px;
-  cursor: pointer;
-   margin: 0 auto;
+  border: none; border-radius: 6px;
+  background: #dc3545; color: #fff;
+  font-size: 14px; cursor: pointer;
+}
+.mo-cancel-btn:disabled { background: #bbb; cursor: not-allowed; }
+
+/* 문의하기: 작은 텍스트 링크 */
+.mo-contact-link {
+  display: block;
+  margin: 6px auto 0;
+  background: none; border: none;
+  color: #1da1f2; font-size: 13px;
+  cursor: pointer; text-decoration: underline;
 }
 
-.mo-cancel-btn:disabled {
-  background: #bbb;
-  cursor: not-allowed;
+/* FAQ 토글 & 내용(카드 아래 공간 활용) */
+.mo-faq-wrap {
+  margin-top: 12px;
 }
+.mo-faq-toggle {
+  width: 100%;
+  background: none; border: none;
+  font-weight: 800; font-size: 15px;
+  color: #333; cursor: pointer;
+  text-align: left;
+  padding: 8px 4px;
+}
+.mo-faq {
+  padding: 8px 10px;
+  font-size: 12px; line-height: 1.35;
+  color: #444;
+  /* 스크롤 늘어나지 않도록 타이트하게 */
+}
+.mo-faq-item { margin: 6px 0; }
+.mo-faq-item strong { display: block; font-weight: 700; margin-bottom: 2px; }
 
 /* 모달 */
 .mo-modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.3);
-  z-index: 1000;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.3); z-index: 1000;
 }
 .mo-confirm-modal {
-  position: fixed;
-  top: 50%; left: 50%;
+  position: fixed; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 80%;
-  max-width: 320px;
-  background: #fff;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 1001;
-  text-align: center;
+  width: 80%; max-width: 320px;
+  background: #fff; padding: 24px;
+  border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1001; text-align: center;
 }
-.mo-confirm-modal p {
-  margin: 0 0 16px;
-  font-size: 16px;
-}
-.mo-confirm-buttons {
-  display: flex;
-  gap: 12px;
-}
+.mo-confirm-modal p { margin: 0 0 16px; font-size: 16px; }
+.mo-confirm-buttons { display: flex; gap: 12px; }
 .mo-confirm-buttons button {
-  flex: 1;
-  padding: 8px 0;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
+  flex: 1; padding: 8px 0;
+  border: none; border-radius: 6px; cursor: pointer; font-size: 14px;
 }
-.mo-confirm-buttons button:first-child {
-  background: #28a745; color: #fff;
-}
-.mo-confirm-buttons button:last-child {
-  background: #999; color: #fff;
-}
+.mo-confirm-buttons button:first-child { background: #28a745; color: #fff; }
+.mo-confirm-buttons button:last-child  { background: #999;    color: #fff; }

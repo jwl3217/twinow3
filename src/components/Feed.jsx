@@ -1,5 +1,4 @@
 // src/components/Feed.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate }                from 'react-router-dom';
 import {
@@ -15,20 +14,22 @@ import { onAuthStateChanged }         from 'firebase/auth';
 import defaultProfile                 from '../assets/default-profile.png';
 import ImageModal                     from './ImageModal';
 import '../styles/feed.css';
-import searchIcon from '../assets/search-icon.png';
+import searchIcon                     from '../assets/search-icon.png';
+import scrollTopIcon                  from '../assets/scroll-top.png'; // ★ 추가
 
 export default function Feed() {
   const navigate = useNavigate();
   const [posts, setPosts]                       = useState([]);
   const [users, setUsers]                       = useState({});
   const [selectedGender, setSelectedGender]     = useState('all');
-  const [searchInput, setSearchInput]           = useState('');   // 변경: 입력용
-  const [searchText, setSearchText]             = useState('');   // 변경: 실제 검색 기준
+  const [searchInput, setSearchInput]           = useState('');
+  const [searchText, setSearchText]             = useState('');
   const [modalSrc, setModalSrc]                 = useState(null);
   const [blockedUsers, setBlockedUsers]         = useState([]);
+  const [showTop, setShowTop]                   = useState(false); // ★ 추가
   const currentUid = auth.currentUser?.uid;
 
-  // 1) 로그인 상태 확인
+  // 로그인 상태
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
       if (!user) navigate('/', { replace: true });
@@ -36,7 +37,7 @@ export default function Feed() {
     return unsub;
   }, [navigate]);
 
-  // 2) 포스트 & 유저 로드
+  // 포스트 & 유저 로드
   useEffect(() => {
     const qPosts = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(qPosts, async snap => {
@@ -57,7 +58,7 @@ export default function Feed() {
     return () => unsub();
   }, [users]);
 
-  // 3) 내 차단 목록
+  // 내 차단 목록
   useEffect(() => {
     if (!currentUid) return;
     (async () => {
@@ -66,7 +67,27 @@ export default function Feed() {
     })();
   }, [currentUid]);
 
-  // 시간 표시 함수
+  // 스크롤 상단 버튼 노출 제어 ★ 추가
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || document.documentElement.scrollTop;
+      setShowTop(y > window.innerHeight); // 한 화면 이상 내려가면 표시
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); // 초기값
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    // 부드럽게 최상단으로
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+  };
+
+  // 시간 표시
   const timeAgo = ts => {
     if (!ts?.toMillis) return '';
     const diff = Date.now() - ts.toMillis();
@@ -81,7 +102,7 @@ export default function Feed() {
     return `${Math.floor(day / 365)}년 전`;
   };
 
-  // 필터링 (searchText 기준)
+  // 필터링
   const filtered = posts.filter(post => {
     const u = users[post.uid] || {};
     if (selectedGender === 'male' && u.gender !== 'male')     return false;
@@ -110,29 +131,25 @@ export default function Feed() {
         <input
           type="text"
           placeholder="지역, 닉네임, 글 내용 검색"
-          value={searchInput}                          // 변경
-          onChange={e => setSearchInput(e.target.value)} // 변경
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
         />
         <button
-   type="button"
-   onClick={() => setSearchText(searchInput)}
-   className="search-button"
- >
-   <img src={searchIcon} alt="검색" />
- </button>
+          type="button"
+          onClick={() => setSearchText(searchInput)}
+          className="search-button"
+        >
+          <img src={searchIcon} alt="검색" />
+        </button>
       </div>
 
       <div className="post-list">
         {filtered.map(post => {
           const u         = users[post.uid] || {};
           const isBlocked = blockedUsers.includes(post.uid);
-          const photo     = isBlocked
-            ? defaultProfile
-            : (u.photoURL || defaultProfile);
+          const photo     = isBlocked ? defaultProfile : (u.photoURL || defaultProfile);
           const nick      = u.nickname || '알 수 없음';
-          const content   = isBlocked
-            ? '차단한 유저의 게시글입니다'
-            : post.content;
+          const content   = isBlocked ? '차단한 유저의 게시글입니다' : post.content;
 
           return (
             <div
@@ -156,8 +173,7 @@ export default function Feed() {
                   <h3>{nick}</h3>
                   {!isBlocked && (
                     <p>
-                      {u.age || '--'}세 · {u.gender==='male'?'남자':'여자'} ·{' '}
-                      {u.region || '--'} · {timeAgo(post.createdAt)}
+                      {u.age || '--'}세 · {u.gender==='male'?'남자':'여자'} · {u.region || '--'} · {timeAgo(post.createdAt)}
                     </p>
                   )}
                 </div>
@@ -171,12 +187,23 @@ export default function Feed() {
         )}
       </div>
 
+      {/* 글쓰기 FAB */}
       <div
         className="fab-button"
         onClick={() => navigate('/post/new')}
       >
         <img src={require('../assets/plus-icon.png')} alt="글쓰기" />
       </div>
+
+      {/* ▲ 맨 위로 버튼 (스크롤 시 페이드인) ★ 추가 */}
+      <button
+        type="button"
+        className={`scroll-top ${showTop ? 'visible' : ''}`}
+        onClick={scrollToTop}
+        aria-label="맨 위로 이동"
+      >
+        <img src={scrollTopIcon} alt="" loading="lazy" />
+      </button>
 
       {modalSrc && (
         <ImageModal

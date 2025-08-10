@@ -49,7 +49,7 @@ export default function MessageList() {
           const otherId = room.members.find(m => m !== uid) || null;
 
           // 상태 판별
-          const otherLeft   = otherId === null;
+          const otherLeft = otherId === null;
           let userData = {};
           if (otherId) {
             const usSnap = await getDoc(doc(db, 'users', otherId));
@@ -58,7 +58,7 @@ export default function MessageList() {
             }
           }
           const unknownDel    = otherId && !userData.nickname;
-          const iBlockedThem  = blockedUsers.includes(otherId);
+          const iBlockedThem  = otherId ? blockedUsers.includes(otherId) : false;
           const theyBlockedMe = userData.blockedUsers?.includes(uid);
 
           // 표시값 결정
@@ -81,7 +81,7 @@ export default function MessageList() {
           };
         })
       );
-      fetched.sort((a, b) => b.lastAt?.toMillis() - a.lastAt?.toMillis());
+      fetched.sort((a, b) => (b.lastAt?.toMillis?.() || 0) - (a.lastAt?.toMillis?.() || 0));
       setRooms(fetched);
     });
     return () => unsub();
@@ -98,11 +98,25 @@ export default function MessageList() {
     setMenuOpenId(null);
   };
 
-  const handleBlock = async otherId => {
+  // 차단
+  const handleBlock = async (otherId) => {
+    if (!otherId) return;
     if (!window.confirm('정말 차단하시겠습니까?')) return;
     await updateDoc(doc(db, 'users', uid), {
       blockedUsers: arrayUnion(otherId)
     });
+    setBlockedUsers(prev => (prev.includes(otherId) ? prev : [...prev, otherId]));
+    setMenuOpenId(null);
+  };
+
+  // 차단 해제 (브라우저 기본 확인창)
+  const handleUnblock = async (otherId) => {
+    if (!otherId) return;
+    if (!window.confirm('차단을 해제하시겠습니까?')) return;
+    await updateDoc(doc(db, 'users', uid), {
+      blockedUsers: arrayRemove(otherId)
+    });
+    setBlockedUsers(prev => prev.filter(x => x !== otherId));
     setMenuOpenId(null);
   };
 
@@ -116,7 +130,7 @@ export default function MessageList() {
         >
           <img
             src={backArrow}
-            alt="뒤로가기"
+            alt="뒤루가기"
             className="back-btn-icon"
           />
         </button>
@@ -128,67 +142,84 @@ export default function MessageList() {
 
       {/* 3) 본문 스크롤 영역 */}
       <div className="msglist-body">
-        {rooms.map(room => (
-          <div key={room.id} className="msglist-card">
-            <div
-              className="room-info"
-              onClick={async () => {
-                await updateDoc(doc(db, 'chatRooms', room.id), {
-                  [`unread.${uid}`]: 0
-                });
-                navigate(`/chat/${room.id}`);
-              }}
-            >
-              <img
-                src={room.photoURL}
-                alt=""
-                className="room-profile"
-              />
-              <div className="room-text">
-                <div className="room-header">
-                  <span className="room-nick">{room.nickname}</span>
-                  {room.unread > 0 && (
-                    <span className="room-unread">
-                      {room.unread > 9 ? '9+' : room.unread} 읽지않음
-                    </span>
-                  )}
-                </div>
-                <div className="room-last">
-                  {room.lastMessage || ''}
+        {rooms.map(room => {
+          const isBlockedByMe = room.otherId ? blockedUsers.includes(room.otherId) : false;
+          return (
+            <div key={room.id} className="msglist-card">
+              <div
+                className="room-info"
+                onClick={async () => {
+                  await updateDoc(doc(db, 'chatRooms', room.id), {
+                    [`unread.${uid}`]: 0
+                  });
+                  navigate(`/chat/${room.id}`);
+                }}
+              >
+                <img
+                  src={room.photoURL}
+                  alt=""
+                  className="room-profile"
+                />
+                <div className="room-text">
+                  <div className="room-header">
+                    <span className="room-nick">{room.nickname}</span>
+                    {room.unread > 0 && (
+                      <span className="room-unread">
+                        {room.unread > 9 ? '9+' : room.unread} 읽지않음
+                      </span>
+                    )}
+                  </div>
+                  <div className="room-last">
+                    {room.lastMessage || ''}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <button
-              className="room-menu-btn"
-              onClick={e => {
-                e.stopPropagation();
-                setMenuOpenId(menuOpenId === room.id ? null : room.id);
-              }}
-            >
-              ⋮
-            </button>
-            {menuOpenId === room.id && (
-              <div className="room-menu">
-                <button onClick={() => handleLeave(room.id)}>
-                  채팅방 나가기
-                </button>
-                <button onClick={() => handleBlock(room.otherId)}>
-                  차단하기
-                </button>
-                <button onClick={() => navigate(`/report/${room.otherId}`)}>
-                  신고
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+              <button
+                className="room-menu-btn"
+                onClick={e => {
+                  e.stopPropagation();
+                  setMenuOpenId(menuOpenId === room.id ? null : room.id);
+                }}
+              >
+                ⋮
+              </button>
+              {menuOpenId === room.id && (
+                <div className="room-menu">
+                  <button onClick={() => handleLeave(room.id)}>
+                    채팅방 나가기
+                  </button>
+
+                  {/* 내가 차단한 상태면 '차단 해제하기' */}
+                  {isBlockedByMe ? (
+                    <button
+                      onClick={() => handleUnblock(room.otherId)}
+                      disabled={!room.otherId}
+                    >
+                      차단 해제하기
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleBlock(room.otherId)}
+                      disabled={!room.otherId}
+                    >
+                      차단하기
+                    </button>
+                  )}
+
+                  <button onClick={() => navigate(`/report/${room.otherId}`)}>
+                    신고
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* 모달: 스크롤 영역 밖, 최상단에 렌더링 */}
+      {/* 모달: 채팅방 나가기 (기존 그대로 유지) */}
       {leaveId && (
         <>
-          {/* 배경 오버레이 (클릭 시 모달 닫기) */}
           <div
             className="modal-overlay"
             onClick={() => setLeaveId(null)}
@@ -202,7 +233,6 @@ export default function MessageList() {
               zIndex: 1000
             }}
           />
-          {/* 확인창 */}
           <div
             className="leave-confirm"
             style={{

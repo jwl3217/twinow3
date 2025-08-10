@@ -26,7 +26,7 @@
   padding: 8px 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 18px;
 }
 
 /* 추가: 검색 버튼 스타일 */
@@ -109,4 +109,42 @@
 .fab-button img {
   width: 24px;
   height: 24px;
+}
+
+
+
+/* ===== 맨 위로 버튼 ===== */
+.scroll-top {
+  position: fixed;
+  top: 82px;               /* 화면 위쪽 */
+  left: 50%;
+  transform: translate(-50%, -6px);
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+  z-index: 20;
+}
+.scroll-top.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+.scroll-top img {
+  width: 41px;
+  height: 41px;
+}
+@media (hover:hover) and (pointer:fine) {
+  .scroll-top:hover { filter: brightness(0.97); }
+}
+.scroll-top:active {
+  transform: translate(-50%, 2px);
 }
