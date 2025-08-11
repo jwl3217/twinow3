@@ -5,7 +5,7 @@ import {
   GoogleAuthProvider,
   TwitterAuthProvider,
   signInWithPopup,
-  onAuthStateChanged,               // ★ 추가
+  onAuthStateChanged,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db }        from '../firebaseConfig';
@@ -15,47 +15,79 @@ import '../styles/Home.css';
 export default function Home() {
   const navigate = useNavigate();
 
-  // BottomNav 숨기기
   useEffect(() => {
     const nav = document.querySelector('.bottom-nav');
     if (nav) nav.style.display = 'none';
     return () => { if (nav) nav.style.display = ''; };
   }, []);
 
-  // ★ 이미 로그인된 경우 자동 리다이렉트
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
       try {
         const snap = await getDoc(doc(db, 'users', u.uid));
         if (!snap.exists()) {
-          // 유저 문서가 없으면 가입완료로
           navigate('/signup', { replace: true });
           return;
         }
         const data = snap.data();
-        // 프로필 완성 여부에 따라 분기
         if (data.nickname && data.gender && data.region) {
           navigate('/feed', { replace: true });
         } else {
           navigate('/signup', { replace: true });
         }
-      } catch {
-        // 문제 생겨도 홈에 머무르도록 조용히 무시
-      }
+      } catch {}
     });
     return () => unsub();
   }, [navigate]);
+
+  // ★ 보조: 날짜 포맷
+  const pad2 = n => String(n).padStart(2, '0');
+  const fmt = (ms) => {
+    const d = new Date(ms);
+    return `${d.getFullYear()}.${pad2(d.getMonth()+1)}.${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  };
 
   const handleProviderLogin = async provider => {
     try {
       const result  = await signInWithPopup(auth, provider);
       const u       = result.user;
+
+      // ★ 재가입 제한 확인 (email 우선, 없으면 provider-sub)
+      try {
+        const email = (u.email || '').trim().toLowerCase();
+        const p0    = u.providerData?.[0] || {};
+        const sub   = `${p0.providerId || 'unknown'}:${p0.uid || u.uid}`;
+
+        const keys = [];
+        if (email) keys.push(`email:${email}`);
+        keys.push(`sub:${sub}`);
+
+        let bannedUntil = null;
+        for (const k of keys) {
+          const bSnap = await getDoc(doc(db, 'rejoinBans', k));
+          if (bSnap.exists()) {
+            const d = bSnap.data();
+            if (d?.untilAt && Date.now() < d.untilAt) {
+              bannedUntil = d.untilAt;
+              break;
+            }
+          }
+        }
+
+        if (bannedUntil) {
+          alert(`${fmt(bannedUntil)} 이후부터 재가입이 가능합니다.`);
+          await auth.signOut?.();
+          return; // 여기서 흐름 종료
+        }
+      } catch (e) {
+        // 조회 실패해도 신규/기존 분기 계속
+      }
+
       const userRef = doc(db, 'users', u.uid);
       const snap    = await getDoc(userRef);
 
       if (!snap.exists()) {
-        // 신규 가입자 기본 문서 생성
         await setDoc(userRef, {
           uid:          u.uid,
           displayName:  u.displayName || '',
@@ -72,7 +104,6 @@ export default function Home() {
         return navigate('/signup');
       }
 
-      // 기존 가입자 분기
       const data = snap.data();
       if (data.nickname && data.gender && data.region) {
         navigate('/feed');
