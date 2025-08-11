@@ -10,16 +10,17 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db }        from '../firebaseConfig';
 import twinowLogo          from '../assets/twinow-logo.png';
-import { TERMS_MD }        from '../content/termsDraft.js'; // ✅ 약관 별도 파일
+import { TERMS_MD }        from '../content/termsDraft.js'; // 약관 별도 파일(현재 네 파일 기준 유지)
 import '../styles/Home.css';
 
 export default function Home() {
   const navigate = useNavigate();
 
-  // ✅ 추가: 체크/모달 상태
-  const [agreeInfo, setAgreeInfo]   = useState(false); // "트위나우TwiNow가 뭔가요?" 확인 체크
-  const [agreeTerms, setAgreeTerms] = useState(false); // 회원약관 확인 체크
+  // 체크/모달/모드
+  const [agreeInfo, setAgreeInfo]   = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [openModal, setOpenModal]   = useState(null);  // 'about' | 'terms' | null
+  const [isLoginMode, setIsLoginMode] = useState(false); // ← 로그인 모드 토글
 
   const canLogin = agreeInfo && agreeTerms;
 
@@ -57,7 +58,9 @@ export default function Home() {
   };
 
   const handleProviderLogin = async provider => {
-    if (!canLogin) return; // 안전장치
+    // 가입 모드일 때만 체크 강제, 로그인 모드는 무시하고 진행
+    if (!isLoginMode && !canLogin) return;
+
     try {
       const result  = await signInWithPopup(auth, provider);
       const u       = result.user;
@@ -102,6 +105,7 @@ export default function Home() {
       const userRef = doc(db, 'users', u.uid);
       const snap    = await getDoc(userRef);
 
+      // 신규 문서 생성 → 회원가입 페이지로 이동 + 안내 모달(회원가입 페이지에서 alert)
       if (!snap.exists()) {
         await setDoc(userRef, {
           uid:          u.uid,
@@ -116,13 +120,19 @@ export default function Home() {
           authProvider: result.providerId,  // 'google.com' | 'twitter.com'
           createdAt:    serverTimestamp()
         });
+        sessionStorage.setItem('signupNotice', 'noProfile');
         return navigate('/signup');
       }
 
+      // 기존 문서 존재
       const data = snap.data();
       if (data.nickname && data.gender && data.region) {
+        // 완성된 계정 → 피드로 이동 + 안내 모달(피드에서 alert)
+        sessionStorage.setItem('loginNotice', 'existingLogin');
         navigate('/feed');
       } else {
+        // 프로필 미완성 → 회원가입 페이지로 이동 + 안내 모달(회원가입 페이지에서 alert)
+        sessionStorage.setItem('signupNotice', 'noProfile');
         navigate('/signup');
       }
     } catch (err) {
@@ -131,13 +141,18 @@ export default function Home() {
     }
   };
 
-  // ✅ 소개 문구(모달용) - 줄바꿈 유지
+  // 소개 문구(모달용)
   const ABOUT_TEXT = `트위나우TwiNow는 트위터와 비슷한,
 온라인에서 나의 지역을 기반으로 친구를 찾을 수 있는 플랫폼이에요.
 
 기존 스팸 계정이나 도용 계정이 너무 많아 불편했던 트위터와 다르게,
 트위나우TwiNow에서는 데이터 분석을 통해 스팸이나 도용 계정을 걸러내고
 실제 사람과 빠르게 연결될 수 있어요.`;
+
+  // 라벨/활성 상태 계산
+  const googleLabel  = isLoginMode ? 'google로 로그인'  : 'google로 회원가입';
+  const twitterLabel = isLoginMode ? 'twitter로 로그인' : 'twitter로 회원가입';
+  const buttonsDisabled = isLoginMode ? false : !canLogin; // 로그인 모드면 항상 활성
 
   return (
     <div className="home-container">
@@ -149,7 +164,7 @@ export default function Home() {
         온라인 채팅 커뮤니티 플랫폼입니다.
       </p>
 
-      {/* ✅ 로그인 영역 래퍼 */}
+      {/* 로그인/회원가입 영역 */}
       <div
         className="login-area"
         style={{
@@ -160,8 +175,13 @@ export default function Home() {
           gap: 10
         }}
       >
-        {/* ✅ 두 줄(❌/✔️ + 텍스트) - 스페이스 한 칸 복원 */}
-        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0 }}>
+        {/* 체크 두 줄: 로그인 모드일 때 회색 + 비활성화 */}
+        <div
+          style={{
+            fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0,
+            opacity: isLoginMode ? 0.45 : 1, pointerEvents: isLoginMode ? 'none' : 'auto'
+          }}
+        >
           <button
             type="button"
             onClick={() => setAgreeInfo(v => !v)}
@@ -178,7 +198,7 @@ export default function Home() {
           >
             {agreeInfo ? '✔️' : '❌'}
           </button>
-          {' '}{/* ← 스페이스 한 칸 */}
+          {' '}
           <button
             type="button"
             onClick={() => setOpenModal('about')}
@@ -196,7 +216,12 @@ export default function Home() {
           </button>
         </div>
 
-        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0 }}>
+        <div
+          style={{
+            fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0,
+            opacity: isLoginMode ? 0.45 : 1, pointerEvents: isLoginMode ? 'none' : 'auto'
+          }}
+        >
           <button
             type="button"
             onClick={() => setAgreeTerms(v => !v)}
@@ -213,7 +238,7 @@ export default function Home() {
           >
             {agreeTerms ? '✔️' : '❌'}
           </button>
-          {' '}{/* ← 스페이스 한 칸 */}
+          {' '}
           <button
             type="button"
             onClick={() => setOpenModal('terms')}
@@ -231,8 +256,8 @@ export default function Home() {
           </button>
         </div>
 
-        {/* ✅ 안내 문구: 두 체크가 모두 ✔️가 되면 사라지고 공간을 차지하지 않음 */}
-        {!canLogin && (
+        {/* 안내 문구: 가입 모드에서만 보여주고(로그인 모드에선 숨김), 공간도 차지 X */}
+        {!isLoginMode && !canLogin && (
           <div
             style={{
               color: '#d93025',
@@ -242,38 +267,57 @@ export default function Home() {
               textAlign: 'center'
             }}
           >
-            X를 모두 클릭해주세요.
+            (❌표시를 모두 클릭해주세요.)
           </div>
         )}
 
-        {/* ✅ 로그인 버튼들(회색 비활성 → 체크 2개 모두 ✔️ 시 활성) */}
+        {/* 버튼 2개 */}
         <button
           className="login-btn google"
           onClick={() => handleProviderLogin(new GoogleAuthProvider())}
-          disabled={!canLogin}
+          disabled={buttonsDisabled}
           style={{
             width: '100%',
-            opacity: canLogin ? 1 : 0.5,
-            cursor: canLogin ? 'pointer' : 'not-allowed'
+            opacity: buttonsDisabled ? 0.5 : 1,
+            cursor: buttonsDisabled ? 'not-allowed' : 'pointer'
           }}
         >
-          Google로 로그인
+          {googleLabel}
         </button>
+
         <button
           className="login-btn twitter"
           onClick={() => handleProviderLogin(new TwitterAuthProvider())}
-          disabled={!canLogin}
+          disabled={buttonsDisabled}
           style={{
             width: '100%',
-            opacity: canLogin ? 1 : 0.5,
-            cursor: canLogin ? 'pointer' : 'not-allowed'
+            opacity: buttonsDisabled ? 0.5 : 1,
+            cursor: buttonsDisabled ? 'not-allowed' : 'pointer'
           }}
         >
-          Twitter로 로그인
+          {twitterLabel}
+        </button>
+
+        {/* 하단 작은 링크: 모드 토글 */}
+        <button
+          type="button"
+          onClick={() => setIsLoginMode(v => !v)}
+          style={{
+            marginTop: 6,
+            background: 'none',
+            border: 'none',
+            fontSize: 12,
+            textDecoration: 'underline',
+            color: '#1a73e8',
+            cursor: 'pointer',
+            alignSelf: 'center'
+          }}
+        >
+          {isLoginMode ? '계정이 없으신가요? 회원가입하기' : '이미 계정이 있으신가요? 로그인하기'}
         </button>
       </div>
 
-      {/* ✅ 커스텀 카드 모달 (웹 기본 모달 X) */}
+      {/* 커스텀 카드 모달 */}
       {openModal && (
         <>
           <div
@@ -304,7 +348,6 @@ export default function Home() {
               padding: '16px 16px 12px'
             }}
           >
-            {/* 닫기 X */}
             <button
               aria-label="닫기"
               onClick={() => setOpenModal(null)}
@@ -325,13 +368,12 @@ export default function Home() {
               {openModal === 'about' ? '트위나우TwiNow 안내' : '회원약관 안내'}
             </div>
 
-            {/* 본문: 고정 높이 + 내부 스크롤 (모달 크기 고정) */}
             <div
               style={{
                 border: '1px solid #eee',
                 borderRadius: 8,
                 padding: 12,
-                height: '60vh',          // ← 고정 높이
+                height: '60vh',
                 overflowY: 'auto',
                 whiteSpace: 'pre-wrap',
                 lineHeight: 1.5,

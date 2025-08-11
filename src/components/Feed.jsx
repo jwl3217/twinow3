@@ -29,6 +29,16 @@ export default function Feed() {
   const [showTop, setShowTop]                   = useState(false);
   const currentUid = auth.currentUser?.uid;
 
+  // ✅ 추가: 피드 진입 시 브라우저 기본 모달 표시
+  useEffect(() => {
+    const key = 'loginNotice';
+    const v = sessionStorage.getItem(key);
+    if (v === 'existingLogin') {
+      sessionStorage.removeItem(key);
+      alert('이미 가입된 계정으로 로그인되었습니다.');
+    }
+  }, []);
+
   // ===== 가상 무한 스크롤(점진 렌더) 설정값 =====
   const APPROX_CARD_PX = 220;
   const INITIAL_MULT = 2;   // ← 처음 로드 분량(화면 높이 x 3)

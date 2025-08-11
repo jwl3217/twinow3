@@ -40,6 +40,16 @@ export default function SignUp() {
   const [invalidModal, setInvalidModal] = useState(false);
   const [imgModalOpen, setImgModalOpen] = useState(false);
 
+  // ✅ 추가: 회원가입 화면 진입 시 안내(브라우저 기본 모달)
+  useEffect(() => {
+    const key = 'signupNotice';
+    const v = sessionStorage.getItem(key);
+    if (v === 'noProfile') {
+      sessionStorage.removeItem(key);
+      alert('회원 정보가 없어 회원가입 페이지로 이동합니다');
+    }
+  }, []);
+
   // 1) 관리자 화면에서 이메일/비번 전달(prefill) 시: Auth 계정 생성 + Firestore 문서
   useEffect(() => {
     if (prefillEmail && prefillPassword && !didPrefillRef.current) {
@@ -134,7 +144,7 @@ export default function SignUp() {
         gender,
         age:           Number(age),
         region,
-        coins:         coinsToSet,     // ← 여기만 조건부로 변경
+        coins:         coinsToSet,     // ← 조건부 반영
         authProvider:  'password',     // 이메일/비번 가입임을 명시
         createdAt:     serverTimestamp()
       });
