@@ -149,7 +149,7 @@ export default function Home() {
         온라인 채팅 커뮤니티 플랫폼입니다.
       </p>
 
-      {/* ✅ 로그인 영역 래퍼: 버튼과 안내문 왼쪽 정렬 맞춤 */}
+      {/* ✅ 로그인 영역 래퍼 */}
       <div
         className="login-area"
         style={{
@@ -160,8 +160,8 @@ export default function Home() {
           gap: 10
         }}
       >
-        {/* ✅ 두 줄(❌/✔️ + 텍스트) - 굵게, 왼쪽 정렬 */}
-        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* ✅ 두 줄(❌/✔️ + 텍스트) - 스페이스 한 칸 복원 */}
+        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0 }}>
           <button
             type="button"
             onClick={() => setAgreeInfo(v => !v)}
@@ -169,6 +169,7 @@ export default function Home() {
             style={{
               border: 'none',
               background: 'none',
+              padding: 0,
               fontSize: 18,
               cursor: 'pointer',
               lineHeight: 1
@@ -177,6 +178,7 @@ export default function Home() {
           >
             {agreeInfo ? '✔️' : '❌'}
           </button>
+          {' '}{/* ← 스페이스 한 칸 */}
           <button
             type="button"
             onClick={() => setOpenModal('about')}
@@ -190,11 +192,11 @@ export default function Home() {
               fontWeight: 700
             }}
           >
-            트위나우TwiNow가 뭔가요?(클릭)
+            트위나우TwiNow가 뭔가요?
           </button>
         </div>
 
-        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0 }}>
           <button
             type="button"
             onClick={() => setAgreeTerms(v => !v)}
@@ -202,6 +204,7 @@ export default function Home() {
             style={{
               border: 'none',
               background: 'none',
+              padding: 0,
               fontSize: 18,
               cursor: 'pointer',
               lineHeight: 1
@@ -210,6 +213,7 @@ export default function Home() {
           >
             {agreeTerms ? '✔️' : '❌'}
           </button>
+          {' '}{/* ← 스페이스 한 칸 */}
           <button
             type="button"
             onClick={() => setOpenModal('terms')}
@@ -223,9 +227,24 @@ export default function Home() {
               fontWeight: 700
             }}
           >
-            회원약관 확인(클릭)
+            회원약관 확인
           </button>
         </div>
+
+        {/* ✅ 안내 문구: 두 체크가 모두 ✔️가 되면 사라지고 공간을 차지하지 않음 */}
+        {!canLogin && (
+          <div
+            style={{
+              color: '#d93025',
+              fontSize: 10,
+              marginTop: 4,
+              marginBottom: 6,
+              textAlign: 'center'
+            }}
+          >
+            X를 모두 클릭해주세요.
+          </div>
+        )}
 
         {/* ✅ 로그인 버튼들(회색 비활성 → 체크 2개 모두 ✔️ 시 활성) */}
         <button
