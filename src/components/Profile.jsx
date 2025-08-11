@@ -11,10 +11,9 @@ import '../styles/Profile.css';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const [userData, setUserData]             = useState(null);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [modalSrc, setModalSrc]             = useState(null);
-  const [isAdmin, setIsAdmin]               = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [modalSrc, setModalSrc] = useState(null);
+  const [isAdmin, setIsAdmin]   = useState(false);
 
   // Auth 상태 감시 및 사용자 정보 로드
   useEffect(() => {
@@ -48,6 +47,13 @@ export default function Profile() {
   const doLogout = () => {
     localStorage.removeItem('impersonatorUid');
     auth.signOut().then(() => navigate('/', { replace: true }));
+  };
+
+  // ✅ 브라우저 기본 confirm 사용
+  const handleLogoutClick = () => {
+    if (window.confirm('정말 로그아웃하시겠습니까?')) {
+      doLogout();
+    }
   };
 
   if (!userData) return null;
@@ -114,7 +120,7 @@ export default function Profile() {
         <button
           type="button"
           className="btn"
-          onClick={() => setShowLogoutConfirm(true)}
+          onClick={handleLogoutClick}
         >
           로그아웃
         </button>
@@ -128,30 +134,6 @@ export default function Profile() {
           </button>
         )}
       </div>
-
-      {showLogoutConfirm && (
-        <div className="logout-modal-overlay">
-          <div className="logout-modal" role="dialog" aria-modal="true">
-            <p>정말 로그아웃하시겠습니까?</p>
-            <div className="logout-modal-buttons">
-              <button
-                type="button"
-                className="logout-btn-confirm"
-                onClick={doLogout}
-              >
-                네
-              </button>
-              <button
-                type="button"
-                className="logout-btn-cancel"
-                onClick={() => setShowLogoutConfirm(false)}
-              >
-                아니요
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {modalSrc && (
         <ImageModal

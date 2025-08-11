@@ -1,5 +1,5 @@
 // 경로: src/components/Home.jsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate }      from 'react-router-dom';
 import {
   GoogleAuthProvider,
@@ -10,10 +10,18 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db }        from '../firebaseConfig';
 import twinowLogo          from '../assets/twinow-logo.png';
+import { TERMS_MD }        from '../content/termsDraft.js'; // ✅ 약관 별도 파일
 import '../styles/Home.css';
 
 export default function Home() {
   const navigate = useNavigate();
+
+  // ✅ 추가: 체크/모달 상태
+  const [agreeInfo, setAgreeInfo]   = useState(false); // "트위나우TwiNow가 뭔가요?" 확인 체크
+  const [agreeTerms, setAgreeTerms] = useState(false); // 회원약관 확인 체크
+  const [openModal, setOpenModal]   = useState(null);  // 'about' | 'terms' | null
+
+  const canLogin = agreeInfo && agreeTerms;
 
   useEffect(() => {
     const nav = document.querySelector('.bottom-nav');
@@ -49,6 +57,7 @@ export default function Home() {
   };
 
   const handleProviderLogin = async provider => {
+    if (!canLogin) return; // 안전장치
     try {
       const result  = await signInWithPopup(auth, provider);
       const u       = result.user;
@@ -73,9 +82,6 @@ export default function Home() {
           const until = d?.untilAt;
           const bannedUid = d?.bannedUid;
 
-          // 1) 기한이 남아있고
-          // 2) bannedUid가 설정되어 있으며 현재 로그인 uid와 "같은" 경우에만 제한 적용
-          //    (관리자가 기존 Auth 계정을 삭제해서 새 uid가 발급된 경우 → 허용)
           if (until && Date.now() < until) {
             if (!bannedUid || bannedUid === u.uid) {
               bannedUntil = until;
@@ -85,9 +91,9 @@ export default function Home() {
         }
 
         if (bannedUntil) {
-          alert(`${fmt(bannedUntil)} 이후부터 재가입이 가능합니다.`);
+          alert(`${fmt(bannedUntil)} 이후부터재가입이 가능합니다.`);
           await auth.signOut?.();
-          return; // 여기서 흐름 종료
+          return;
         }
       } catch (e) {
         // 조회 실패해도 신규/기존 분기 계속
@@ -125,6 +131,14 @@ export default function Home() {
     }
   };
 
+  // ✅ 소개 문구(모달용) - 줄바꿈 유지
+  const ABOUT_TEXT = `트위나우TwiNow는 트위터와 비슷한,
+온라인에서 나의 지역을 기반으로 친구를 찾을 수 있는 플랫폼이에요.
+
+기존 스팸 계정이나 도용 계정이 너무 많아 불편했던 트위터와 다르게,
+트위나우TwiNow에서는 데이터 분석을 통해 스팸이나 도용 계정을 걸러내고
+실제 사람과 빠르게 연결될 수 있어요.`;
+
   return (
     <div className="home-container">
       <img src={twinowLogo} alt="TwiNow 로고" className="logo" />
@@ -135,19 +149,181 @@ export default function Home() {
         온라인 채팅 커뮤니티 플랫폼입니다.
       </p>
 
-      <button
-        className="login-btn google"
-        onClick={() => handleProviderLogin(new GoogleAuthProvider())}
+      {/* ✅ 로그인 영역 래퍼: 버튼과 안내문 왼쪽 정렬 맞춤 */}
+      <div
+        className="login-area"
+        style={{
+          width: 'min(420px, 92%)',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10
+        }}
       >
-        Google로 로그인
-      </button>
-      <button
-        className="login-btn twitter"
-        onClick={() => handleProviderLogin(new TwitterAuthProvider())}
-      >
-        Twitter로 로그인
-      </button>
+        {/* ✅ 두 줄(❌/✔️ + 텍스트) - 굵게, 왼쪽 정렬 */}
+        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setAgreeInfo(v => !v)}
+            aria-pressed={agreeInfo}
+            style={{
+              border: 'none',
+              background: 'none',
+              fontSize: 18,
+              cursor: 'pointer',
+              lineHeight: 1
+            }}
+            title="확인했습니다"
+          >
+            {agreeInfo ? '✔️' : '❌'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenModal('about')}
+            style={{
+              border: 'none',
+              background: 'none',
+              padding: 0,
+              margin: 0,
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontWeight: 700
+            }}
+          >
+            트위나우TwiNow가 뭔가요?(클릭)
+          </button>
+        </div>
+
+        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setAgreeTerms(v => !v)}
+            aria-pressed={agreeTerms}
+            style={{
+              border: 'none',
+              background: 'none',
+              fontSize: 18,
+              cursor: 'pointer',
+              lineHeight: 1
+            }}
+            title="확인했습니다"
+          >
+            {agreeTerms ? '✔️' : '❌'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenModal('terms')}
+            style={{
+              border: 'none',
+              background: 'none',
+              padding: 0,
+              margin: 0,
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontWeight: 700
+            }}
+          >
+            회원약관 확인(클릭)
+          </button>
+        </div>
+
+        {/* ✅ 로그인 버튼들(회색 비활성 → 체크 2개 모두 ✔️ 시 활성) */}
+        <button
+          className="login-btn google"
+          onClick={() => handleProviderLogin(new GoogleAuthProvider())}
+          disabled={!canLogin}
+          style={{
+            width: '100%',
+            opacity: canLogin ? 1 : 0.5,
+            cursor: canLogin ? 'pointer' : 'not-allowed'
+          }}
+        >
+          Google로 로그인
+        </button>
+        <button
+          className="login-btn twitter"
+          onClick={() => handleProviderLogin(new TwitterAuthProvider())}
+          disabled={!canLogin}
+          style={{
+            width: '100%',
+            opacity: canLogin ? 1 : 0.5,
+            cursor: canLogin ? 'pointer' : 'not-allowed'
+          }}
+        >
+          Twitter로 로그인
+        </button>
+      </div>
+
+      {/* ✅ 커스텀 카드 모달 (웹 기본 모달 X) */}
+      {openModal && (
+        <>
+          <div
+            onClick={() => setOpenModal(null)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.35)',
+              zIndex: 1000
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 'min(720px, 92vw)',
+              maxWidth: '720px',
+              background: '#fff',
+              borderRadius: 12,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+              zIndex: 1001,
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '16px 16px 12px'
+            }}
+          >
+            {/* 닫기 X */}
+            <button
+              aria-label="닫기"
+              onClick={() => setOpenModal(null)}
+              style={{
+                position: 'absolute',
+                top: 10,
+                right: 12,
+                border: 'none',
+                background: 'none',
+                fontSize: 18,
+                cursor: 'pointer'
+              }}
+            >
+              ×
+            </button>
+
+            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 10 }}>
+              {openModal === 'about' ? '트위나우TwiNow 안내' : '회원약관 안내'}
+            </div>
+
+            {/* 본문: 고정 높이 + 내부 스크롤 (모달 크기 고정) */}
+            <div
+              style={{
+                border: '1px solid #eee',
+                borderRadius: 8,
+                padding: 12,
+                height: '60vh',          // ← 고정 높이
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.5,
+                color: '#333'
+              }}
+            >
+              {openModal === 'about' ? ABOUT_TEXT : TERMS_MD}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
-

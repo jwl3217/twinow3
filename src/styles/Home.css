@@ -10,6 +10,7 @@
 .logo {
   width: 300px;
   margin-bottom: 0px;
+  margin-top: 50px;
 }
 
 h1 {
@@ -41,4 +42,28 @@ p {
 .login-btn.twitter {
   background-color: #1da1f2;
   color: #fff;
+}
+
+/* ✅ 추가: 로그인 영역 정렬(버튼 가운데) */
+.login-area {
+  display: flex;              /* JSX 인라인과 동일, 여기서 align만 보강 */
+  flex-direction: column;
+  align-items: center;        /* 버튼/텍스트 블록을 가로축 가운데 정렬 */
+}
+
+/* ✅ 추가: 첫 번째/두 번째 안내 줄(❌/✔️ 텍스트) 폭을 버튼과 동일(최대 300px)로 맞추고
+   내부 텍스트는 왼쪽 정렬 → 버튼의 왼쪽 시작선과 정확히 일치 */
+.login-area > div:nth-child(1),
+.login-area > div:nth-child(2) {
+  width: 100%;
+  max-width: 300px;
+  align-self: center;         /* 혹시 부모 align-items가 바뀌어도 가운데 유지 */
+  text-align: left;
+}
+
+/* ✅ 추가: 버튼도 같은 기준으로 가운데 정렬(폭 100%~최대 300px) */
+.login-area .login-btn {
+  width: 100%;
+  max-width: 300px;
+  align-self: center;
 }
