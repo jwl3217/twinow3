@@ -41,7 +41,7 @@ export default function Home() {
     return () => unsub();
   }, [navigate]);
 
-  // ★ 보조: 날짜 포맷
+  // 보조: 날짜 포맷
   const pad2 = n => String(n).padStart(2, '0');
   const fmt = (ms) => {
     const d = new Date(ms);
@@ -64,12 +64,21 @@ export default function Home() {
         keys.push(`sub:${sub}`);
 
         let bannedUntil = null;
+
         for (const k of keys) {
           const bSnap = await getDoc(doc(db, 'rejoinBans', k));
-          if (bSnap.exists()) {
-            const d = bSnap.data();
-            if (d?.untilAt && Date.now() < d.untilAt) {
-              bannedUntil = d.untilAt;
+          if (!bSnap.exists()) continue;
+
+          const d = bSnap.data();
+          const until = d?.untilAt;
+          const bannedUid = d?.bannedUid;
+
+          // 1) 기한이 남아있고
+          // 2) bannedUid가 설정되어 있으며 현재 로그인 uid와 "같은" 경우에만 제한 적용
+          //    (관리자가 기존 Auth 계정을 삭제해서 새 uid가 발급된 경우 → 허용)
+          if (until && Date.now() < until) {
+            if (!bannedUid || bannedUid === u.uid) {
+              bannedUntil = until;
               break;
             }
           }

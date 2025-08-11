@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate }       from 'react-router-dom';
 import { auth, db }          from '../firebaseConfig';
-import { deleteUser }        from 'firebase/auth';
+// import { deleteUser }        from 'firebase/auth'; // ★ 더 이상 즉시 삭제하지 않으므로 미사용
 import {
   collection,
   query,
@@ -12,7 +12,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  setDoc            // ★ 추가
+  setDoc
 } from 'firebase/firestore';
 import '../styles/Withdraw.css';
 import backArrow from '../assets/back-arrow.png';
@@ -22,6 +22,10 @@ export default function Withdraw() {
   const [coins, setCoins]       = useState(0);
   const [nickname, setNickname] = useState('');
   const navigate = useNavigate();
+
+  // ★ Cloud Functions origin (프로젝트 ID로 자동 구성)
+  const CF_ORIGIN =
+    `https://us-central1-${auth.app?.options?.projectId}.cloudfunctions.net`;
 
   useEffect(() => {
     const u = auth.currentUser;
@@ -43,14 +47,14 @@ export default function Withdraw() {
 
   const handleWithdraw = async () => {
     try {
-      // ★ 3일 재가입 불가 안내 모달(브라우저 기본)
-      const ok = window.confirm('회원탈퇴 후 3일 동안 재가입이 불가합니다. 회원탈퇴하시겠습니까?');
+      // ★ 1일 재가입 제한 안내
+      const ok = window.confirm('회원탈퇴 후 1일 동안 재가입이 불가합니다. 회원탈퇴하시겠습니까?');
       if (!ok) return;
 
       const user = auth.currentUser;
       if (!user) throw new Error('로그인이 필요합니다.');
 
-      // ★ 재가입 제한 레코드 기록
+      // ★ 재가입 제한 레코드 기록 (1일)
       try {
         const userRef  = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
@@ -58,40 +62,49 @@ export default function Withdraw() {
         const email    = (uData.email || user.email || '').trim().toLowerCase() || null;
         const p0       = user.providerData?.[0] || {};
         const sub      = `${p0.providerId || 'unknown'}:${p0.uid || user.uid}`;
-        const untilAt  = Date.now() + 3 * 24 * 60 * 60 * 1000; // 3일(ms)
+        const untilAt  = Date.now() + 1 * 24 * 60 * 60 * 1000; // ★ 1일(ms)
 
         const key = email ? `email:${email}` : `sub:${sub}`;
         await setDoc(doc(db, 'rejoinBans', key), {
           email: email,
           sub,
-          untilAt
+          untilAt,
+          bannedUid: user.uid,              // ★ 현재 uid 저장(관리자 수동삭제 판별용)
         }, { merge: true });
       } catch (e) {
-        // 기록 실패해도 탈퇴 자체는 계속
         console.warn('rejoinBans 기록 실패:', e);
       }
 
-      // 게시글 삭제
+      // ★ Auth 삭제 "예약" (24h), 즉시 삭제 아님
+      try {
+        const idToken = await user.getIdToken(/* forceRefresh */ true);
+        await fetch(`${CF_ORIGIN}/queueAuthDeletion`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ afterHours: 24 }) // 기본 24h이지만 명시
+        });
+      } catch (e) {
+        console.warn('Auth 삭제 예약 실패(다음에 재시도 가능):', e);
+      }
+
+      // 게시글 삭제(유지)
       const postsQ    = query(collection(db, 'posts'), where('uid', '==', user.uid));
       const postSnaps = await getDocs(postsQ);
       await Promise.all(postSnaps.docs.map(snap => deleteDoc(doc(db, 'posts', snap.id))));
 
-      // 유저 문서 삭제
+      // 유저 문서 삭제(유지)
       await deleteDoc(doc(db, 'users', user.uid));
 
-      // Auth 계정 즉시 삭제(기존과 동일)
-      await deleteUser(user);
+      // ★ 즉시 Auth 계정을 지우지 않고 로그아웃만
+      await auth.signOut?.();
 
       navigate('/', { replace: true });
     } catch (error) {
       console.error('회원탈퇴 중 오류:', error);
-      if (error.code === 'auth/requires-recent-login') {
-        alert('보안을 위해 최근에 다시 로그인 후 시도해 주세요.');
-        await auth.signOut?.();
-        navigate('/', { replace: true });
-      } else {
-        alert('회원탈퇴 중 오류가 발생했습니다.');
-      }
+      alert('회원탈퇴 중 오류가 발생했습니다.');
     }
   };
 

@@ -1,6 +1,6 @@
 // functions/index.js  (ESM)
 import { onRequest } from 'firebase-functions/v2/https';
-import { onSchedule } from 'firebase-functions/v2/scheduler';   // ★ 추가
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as logger from 'firebase-functions/logger';
 import admin from 'firebase-admin';
 
@@ -23,20 +23,14 @@ function setCors(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 기존: 관리자만 호출 가능 - 이메일/비밀번호 계정 생성 (변경 없음)
+// 관리자 전용: 이메일/비번 계정 생성(변경 없음)
 // ─────────────────────────────────────────────────────────────
 export const createUser = onRequest({ region: 'us-central1' }, async (req, res) => {
   setCors(req, res);
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
-  }
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'method_not_allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST')    return res.status(405).json({ error: 'method_not_allowed' });
 
   try {
-    // 관리자 검증 (Bearer ID 토큰 필요)
     const authHeader = req.headers.authorization || '';
     const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
     if (!idToken) return res.status(401).json({ error: 'unauthenticated' });
@@ -45,9 +39,7 @@ export const createUser = onRequest({ region: 'us-central1' }, async (req, res) 
     if (!decoded.admin) return res.status(403).json({ error: 'forbidden' });
 
     const { email, password, displayName } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: 'missing_fields' });
-    }
+    if (!email || !password) return res.status(400).json({ error: 'missing_fields' });
 
     const userRecord = await admin.auth().createUser({
       email,
@@ -72,11 +64,7 @@ export const createUser = onRequest({ region: 'us-central1' }, async (req, res) 
 });
 
 // ─────────────────────────────────────────────────────────────
-// ★ 추가 1) 탈퇴 예약 등록 HTTPS 함수
-// - 본인 또는 admin만 등록 가능
-// - 기본 3일 뒤(72시간) 삭제 큐에 올림
-// - Frontend에서 탈퇴 시 deleteUser() 대신 이 엔드포인트를 호출
-//   (uid 생략 시 토큰의 본인 uid로 처리)
+// ★ 탈퇴 예약: 기본 24시간 뒤 Auth 삭제
 //   POST /queueAuthDeletion  { afterHours?: number, uid?: string }
 // ─────────────────────────────────────────────────────────────
 export const queueAuthDeletion = onRequest({ region: 'us-central1' }, async (req, res) => {
@@ -92,16 +80,15 @@ export const queueAuthDeletion = onRequest({ region: 'us-central1' }, async (req
     const decoded = await admin.auth().verifyIdToken(idToken);
     const { afterHours, uid: bodyUid } = req.body || {};
 
-    const targetUid = bodyUid || decoded.uid;                  // 본인 기본
+    const targetUid = bodyUid || decoded.uid;
     const callerIsAdmin = !!decoded.admin;
     if (!callerIsAdmin && decoded.uid !== targetUid) {
       return res.status(403).json({ error: 'forbidden' });
     }
 
-    const hours = Number.isFinite(afterHours) ? Math.max(1, Number(afterHours)) : 72; // 기본 72h = 3일
+    const hours = Number.isFinite(afterHours) ? Math.max(1, Number(afterHours)) : 24; // ★ 24h
     const whenAt = Date.now() + hours * 60 * 60 * 1000;
 
-    // 문서ID를 uid로 고정 → 덮어쓰기(연장/갱신) 가능
     await db.collection('scheduledAuthDelete').doc(targetUid).set({
       uid: targetUid,
       whenAt,
@@ -116,9 +103,7 @@ export const queueAuthDeletion = onRequest({ region: 'us-central1' }, async (req
 });
 
 // ─────────────────────────────────────────────────────────────
-// ★ 추가 2) 30분마다 실행되는 스케줄러
-// - scheduledAuthDelete 에서 whenAt 경과한 항목을 가져와 Auth에서 삭제
-// - 성공/존재하지 않음 → 레코드 정리
+// 30분마다 실행: 기한 지난 예약 Auth 삭제
 // ─────────────────────────────────────────────────────────────
 export const cronDeleteAuthUsers = onSchedule(
   { region: 'us-central1', schedule: 'every 30 minutes' },
@@ -140,18 +125,14 @@ export const cronDeleteAuthUsers = onSchedule(
       }
       try {
         await admin.auth().deleteUser(uid);
-        logger.info(`Deleted auth user: ${uid}`);
       } catch (e) {
-        // 이미 삭제된 계정이어도 큐 정리
         if (e && e.code === 'auth/user-not-found') {
-          logger.warn(`User not found at deletion time: ${uid}`);
+          // 이미 삭제됨
         } else {
-          logger.error(`Failed to delete user ${uid}:`, e);
-          // 실패 시 다음 주기에 재시도할 수 있도록 문서 유지하고 continue
+          // 실패 → 다음 주기에 재시도(문서 유지)
           continue;
         }
       }
-      // 성공 또는 not-found → 큐에서 제거
       batch.delete(docSnap.ref);
     }
     await batch.commit();
