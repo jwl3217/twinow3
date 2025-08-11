@@ -54,7 +54,8 @@ export default function SignUp() {
             gender:        '',
             age:           null,
             region:        '',
-            coins:         200,
+            // ✅ 기본값: 남자 기본과 동일하게 100 코인
+            coins:         100,
             authProvider:  u.providerData[0].providerId, // 가입 프로바이더 저장
             createdAt:     serverTimestamp()
           });
@@ -120,6 +121,10 @@ export default function SignUp() {
         await uploadBytes(storageRef, photoFile);
         finalPhotoURL = await getDownloadURL(storageRef);
       }
+
+      // ✅ 성별에 따라 코인 부여: 여자=5000, 그 외(남자 포함)=100
+      const coinsToSet = (gender === 'female') ? 5000 : 100;
+
       await setDoc(doc(db, 'users', user.uid), {
         uid:           user.uid,
         email:         user.email,
@@ -129,7 +134,7 @@ export default function SignUp() {
         gender,
         age:           Number(age),
         region,
-        coins:         200,
+        coins:         coinsToSet,     // ← 여기만 조건부로 변경
         authProvider:  'password',     // 이메일/비번 가입임을 명시
         createdAt:     serverTimestamp()
       });

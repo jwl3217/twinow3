@@ -114,7 +114,6 @@ export default function MessageList() {
           const theyBlockedMe = userData.blockedUsers?.includes(uid);
           const cannotSend = iBlockedThem || theyBlockedMe || otherLeft || unknownDel;
 
-          // 관리자 시점의 페르소나 방에선 "상대" 프로필/닉네임 노출
           const showOther = room.personaMode && isAdmin;
 
           const photoURL = showOther
@@ -138,9 +137,7 @@ export default function MessageList() {
                 const aesKey = await deriveAesKey(privateKey, otherPub);
                 displayLast = await decryptText(aesKey, room.lastMessageCipher.iv, room.lastMessageCipher.ct);
               }
-            } catch {
-              // 복호화 실패 시 기존 lastMessage 유지
-            }
+            } catch {}
           }
 
           return {
@@ -153,12 +150,22 @@ export default function MessageList() {
             unread:      room.unread?.[uid] || 0,
             category:    room.category || (room.personaMode ? 'persona' : 'direct'),
             personaMode: room.personaMode === true,
-            personaPostId: room.personaPostId || null
+            personaPostId: room.personaPostId || null,
+            // ✅ 추가: 고스트 보관자(게시글 이동으로 남긴 사람)
+            ghostHoldBy: room.ghostHoldBy || null
           };
         })
       );
-      fetched.sort((a, b) => (b.lastAt?.toMillis?.() || 0) - (a.lastAt?.toMillis?.() || 0));
-      setRooms(fetched);
+
+      // ✅ 필터링: 대화가 없는 방(lastAt 없음)은 ghostHoldBy가 나(uid)인 경우에만 노출
+      const filtered = fetched.filter(r => {
+        const hasActivity = !!(r.lastAt?.toMillis?.() && r.lastAt.toMillis() > 0);
+        const isMineGhost = r.ghostHoldBy === uid;
+        return hasActivity || isMineGhost;
+      });
+
+      filtered.sort((a, b) => (b.lastAt?.toMillis?.() || 0) - (a.lastAt?.toMillis?.() || 0));
+      setRooms(filtered);
     });
     return () => unsub();
   }, [uid, blockedUsers, isAdmin]);
@@ -212,7 +219,7 @@ export default function MessageList() {
             <div className="room-header">
               <span className="room-nick">{room.nickname}</span>
               {/* 관리자 페르소나 방: 글보기 버튼 */}
-              {isAdmin && room.personaMode && room.personaPostId && (
+              {uid === ADMIN_UID && room.personaMode && room.personaPostId && (
                 <button
                   onClick={(e) => { e.stopPropagation(); navigate(`/post/${room.personaPostId}`); }}
                   style={{

@@ -91,9 +91,7 @@ async function getOrCreateMyKeypair(uid) {
     const usnap = await getDoc(uref);
     const cur   = usnap.data() || {};
     if (!cur.e2eePub) {
-      await updateDoc(uref, { e2eePub: pubJwk }).catch(async () => {
-        // users 문서가 없을 수 있으니 set 대체는 하지 않음(기존 로직 보존)
-      });
+      await updateDoc(uref, { e2eePub: pubJwk }).catch(async () => {});
     }
   } catch {}
   return { publicKey: keypair.publicKey, privateKey: keypair.privateKey, pubJwk };
@@ -162,6 +160,9 @@ export default function ChatRoom() {
   // 메시지 존재 여부
   const hasAnyMessageRef = useRef(false);
 
+  // ✅ 게시글로 이동 클릭 시 자동삭제 방지 플래그
+  const preventAutoDeleteRef = useRef(false);
+
   // E2EE 준비 상태
   const aesKeyRef     = useRef(null);
   const e2eeReadyRef  = useRef(false);
@@ -201,7 +202,6 @@ export default function ChatRoom() {
       const { privateKey } = await getOrCreateMyKeypair(myUid);
       const peerPub = await getOtherPublicKey(peerUid);
       if (!peerPub) {
-        // 상대 공개키 없으면 아직 E2EE 불가
         e2eeReadyRef.current = false;
         aesKeyRef.current = null;
         return;
@@ -241,7 +241,6 @@ export default function ChatRoom() {
       if (other) {
         const us = await getDoc(doc(db, 'users', other));
         setOtherUser(us.exists() ? us.data() : { deleted: true });
-        // E2EE 준비
         await prepareE2EE(me, other);
       } else {
         setOtherUser({});
@@ -250,13 +249,12 @@ export default function ChatRoom() {
       }
 
       // 상단 카드용 원본 포스트 (일반글/페르소나글 공통)
-if (data.personaPostId) {
-  const p = await getDoc(doc(db, 'posts', data.personaPostId));
-  setPinnedPost(p.exists() ? { id: p.id, ...p.data() } : null);
-} else {
-  setPinnedPost(undefined);
-}
-
+      if (data.personaPostId) {
+        const p = await getDoc(doc(db, 'posts', data.personaPostId));
+        setPinnedPost(p.exists() ? { id: p.id, ...p.data() } : null);
+      } else {
+        setPinnedPost(undefined);
+      }
     });
 
     const unsubM = onSnapshot(
@@ -265,7 +263,6 @@ if (data.personaPostId) {
         orderBy('sentAt')
       ),
       async snap => {
-        // 암호문 있으면 복호화해서 text 필드에 주입(렌더 로직 변경 없음)
         const listRaw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         const list = [];
         for (const m of listRaw) {
@@ -274,7 +271,6 @@ if (data.personaPostId) {
               const plain = await decryptText(aesKeyRef.current, m.cipher.iv, m.cipher.ct);
               list.push({ ...m, text: plain });
             } catch {
-              // 복호화 실패 시 표시 깨지지 않도록 빈 문자열
               list.push({ ...m, text: '' });
             }
           } else {
@@ -283,10 +279,7 @@ if (data.personaPostId) {
         }
         setMessages(list);
         hasAnyMessageRef.current = list.length > 0;
-        setTimeout(
-          () => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }),
-          50
-        );
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
       }
     );
 
@@ -296,11 +289,12 @@ if (data.personaPostId) {
     };
   }, [navigate, roomId, me]);
 
-  // 언마운트 시: 메시지 없으면 방 삭제
+  // 언마운트 시: 메시지 없으면 방 삭제 (게시글 이동 시 스킵)
   useEffect(() => {
     return () => {
       if (!roomId) return;
       if (hasAnyMessageRef.current) return;
+      if (preventAutoDeleteRef.current) return; // ✅ 스킵
       deleteDoc(doc(db, 'chatRooms', roomId)).catch(() => {});
     };
   }, [roomId]);
@@ -353,21 +347,19 @@ if (data.personaPostId) {
           sentAt: serverTimestamp()
         });
         setInput('');
-        // lastMessageCipher 저장(미리보기 복호화 전용)
         const targetUid = personaMode ? (isAdmin ? otherUid : ADMIN_UID) : otherUid;
         await updateDoc(doc(db, 'chatRooms', roomId), {
-          lastMessage: '', // 평문 미리보기 제거
+          lastMessage: '',
           lastMessageCipher: { v: 1, iv, ct },
           lastAt: serverTimestamp(),
-          ...(targetUid ? { [`unread.${targetUid}`]: increment(1) } : {})
+          ...(targetUid ? { [`unread.${targetUid}`]: increment(1) } : {}),
+          // 메시지가 생기면 누가 만들었든 양쪽 모두 보이므로 ghostHoldBy는 그대로 두어도 무관
         });
         return;
-      } catch {
-        // 암호화 실패 시 평문 fallback
-      }
+      } catch {}
     }
 
-    // 평문 fallback (상대 공개키 미존재 등)
+    // 평문 fallback
     await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
       text:   txt,
       sender: me,
@@ -384,9 +376,7 @@ if (data.personaPostId) {
 
   const handleUseCoinConfirm = async () => {
     await updateDoc(doc(db, 'users', me), { coins: increment(-100) });
-    await updateDoc(doc(db, 'chatRooms', roomId), {
-      [`unlocked.${me}`]: true
-    });
+    await updateDoc(doc(db, 'chatRooms', roomId), { [`unlocked.${me}`]: true });
     setModalType(null);
     actuallySend();
   };
@@ -461,11 +451,6 @@ if (data.personaPostId) {
         {menuOpen && (
           <div className="chatroom-menu-dropdown">
             <button onClick={handleLeave}>채팅방 나가기</button>
-            {iBlockedThem ? (
-              <button onClick={handleUnblock}>차단 해제하기</button>
-            ) : (
-              <button onClick={handleBlock}>차단하기</button>
-            )}
             <button onClick={handleReport}>신고</button>
           </div>
         )}
@@ -473,7 +458,7 @@ if (data.personaPostId) {
 
       <div className="chatroom-messages">
         {/* 상단 고정 카드: personaPostId가 있으면 1개 표시 */}
-{room?.personaPostId && (
+        {room?.personaPostId && (
           <div className="pinned-post-card">
             {pinnedPost === undefined ? (
               <div className="pinned-loading">불러오는 중…</div>
@@ -486,7 +471,18 @@ if (data.personaPostId) {
                 </div>
                 <button
                   className="pinned-goto-btn"
-                  onClick={() => navigate(`/post/${room.personaPostId}`)}
+                  onClick={async () => {
+                    // ✅ 게시글로 이동 → 자동삭제 방지 + 내 리스트 전용 표시
+                    preventAutoDeleteRef.current = true;
+                    if (!hasAnyMessageRef.current && me) {
+                      try {
+                        await updateDoc(doc(db, 'chatRooms', roomId), {
+                          ghostHoldBy: me
+                        });
+                      } catch {}
+                    }
+                    navigate(`/post/${room.personaPostId}`);
+                  }}
                 >
                   게시글로 이동
                 </button>
