@@ -36,8 +36,6 @@ export default function SignUp() {
   const [gender, setGender]         = useState('');
   const [age, setAge]               = useState('');
   const [region, setRegion]         = useState('');
-  const [showTerms, setShowTerms]   = useState(false);
-  const [agreed, setAgreed]         = useState(false);
   const [completed, setCompleted]   = useState(false);
   const [invalidModal, setInvalidModal] = useState(false);
   const [imgModalOpen, setImgModalOpen] = useState(false);
@@ -213,45 +211,18 @@ export default function SignUp() {
         </select>
       </div>
 
+      {/* ✅ 약관 버튼/모달 제거, 확인 버튼만 남김 */}
       <button
-        className="terms-button"
-        onClick={() => setShowTerms(true)}
+        className="confirm-button"
+        onClick={handleConfirm}
         disabled={!allFilled}
         style={{
           background: allFilled ? undefined : '#ccc',
           cursor:    allFilled ? undefined : 'not-allowed'
         }}
       >
-        회원약관 확인
+        확인
       </button>
-
-      {showTerms && (
-        <div className="terms-modal">
-          <div className="terms-content">
-            {/* 약관 전문 전체 삽입 */}
-            <h3>제1조 (목적)</h3>
-            <p>이 약관은 회사(이하 “회사”)가 제공하는 웹사이트 및 모바일 애플리케이션(이하 “서비스”)의 이용과 관련하여 회사와 이용회원(이하 “회원”)의 권리·의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.</p>
-            {/* ... */}
-            <h3>제7조 (코인 구매 및 유효기간)</h3>
-            <p>1. ‘코인’은 서비스 내에서 유료로 구매 가능합니다.<br/>
-            2. 구매한 코인의 유효기간은 <strong>구매일로부터 1년간</strong>입니다.<br/>
-            3. 유효기간이 경과한 코인은 자동 소멸되며, 소멸된 코인에 대해 회사는 별도의 보상을 제공하지 않습니다.</p>
-            <h3>부칙</h3>
-            <p>본 약관은 2025년 8월 1일부터 시행합니다.</p>
-            <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <button
-                className="terms-close-button"
-                onClick={() => {
-                  setShowTerms(false);
-                  setAgreed(true);
-                }}
-              >
-                약관에 동의합니다
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {invalidModal && (
         <div className="terms-modal">
@@ -268,18 +239,6 @@ export default function SignUp() {
           </div>
         </div>
       )}
-
-      <button
-        className="confirm-button"
-        onClick={handleConfirm}
-        disabled={!agreed}
-        style={{
-          background: agreed ? undefined : '#ccc',
-          cursor:    agreed ? undefined : 'not-allowed'
-        }}
-      >
-        확인
-      </button>
 
       {imgModalOpen && (
         <ImageModal src={photoURL} onClose={() => setImgModalOpen(false)} />
