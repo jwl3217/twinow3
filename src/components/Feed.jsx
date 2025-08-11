@@ -1,4 +1,4 @@
-// src/components/Feed.jsx
+// 경로: src/components/Feed.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate }                from 'react-router-dom';
 import {
@@ -15,7 +15,7 @@ import defaultProfile                 from '../assets/default-profile.png';
 import ImageModal                     from './ImageModal';
 import '../styles/feed.css';
 import searchIcon                     from '../assets/search-icon.png';
-import scrollTopIcon                  from '../assets/scroll-top.png'; // ★ 추가
+import scrollTopIcon                  from '../assets/scroll-top.png';
 
 export default function Feed() {
   const navigate = useNavigate();
@@ -26,10 +26,9 @@ export default function Feed() {
   const [searchText, setSearchText]             = useState('');
   const [modalSrc, setModalSrc]                 = useState(null);
   const [blockedUsers, setBlockedUsers]         = useState([]);
-  const [showTop, setShowTop]                   = useState(false); // ★ 추가
+  const [showTop, setShowTop]                   = useState(false);
   const currentUid = auth.currentUser?.uid;
 
-  // 로그인 상태
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
       if (!user) navigate('/', { replace: true });
@@ -37,7 +36,6 @@ export default function Feed() {
     return unsub;
   }, [navigate]);
 
-  // 포스트 & 유저 로드
   useEffect(() => {
     const qPosts = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(qPosts, async snap => {
@@ -58,7 +56,6 @@ export default function Feed() {
     return () => unsub();
   }, [users]);
 
-  // 내 차단 목록
   useEffect(() => {
     if (!currentUid) return;
     (async () => {
@@ -67,19 +64,17 @@ export default function Feed() {
     })();
   }, [currentUid]);
 
-  // 스크롤 상단 버튼 노출 제어 ★ 추가
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || document.documentElement.scrollTop;
-      setShowTop(y > window.innerHeight); // 한 화면 이상 내려가면 표시
+      setShowTop(y > window.innerHeight);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll(); // 초기값
+    onScroll();
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const scrollToTop = () => {
-    // 부드럽게 최상단으로
     try {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
@@ -87,7 +82,6 @@ export default function Feed() {
     }
   };
 
-  // 시간 표시
   const timeAgo = ts => {
     if (!ts?.toMillis) return '';
     const diff = Date.now() - ts.toMillis();
@@ -102,17 +96,21 @@ export default function Feed() {
     return `${Math.floor(day / 365)}년 전`;
   };
 
-  // 필터링
+  // 필터링: 페르소나 모드면 post의 필드 사용
   const filtered = posts.filter(post => {
+    const isPersona = post.personaMode === true;
     const u = users[post.uid] || {};
-    if (selectedGender === 'male' && u.gender !== 'male')     return false;
-    if (selectedGender === 'female' && u.gender !== 'female') return false;
+
+    const g = isPersona ? post.gender : u.gender;
+    if (selectedGender === 'male' && g !== 'male') return false;
+    if (selectedGender === 'female' && g !== 'female') return false;
+
     const txt = searchText.trim().toLowerCase();
     if (txt) {
-      const a = (u.nickname  || '').toLowerCase().includes(txt);
-      const b = (u.region    || '').toLowerCase().includes(txt);
-      const c = (post.content|| '').toLowerCase().includes(txt);
-      if (!a && !b && !c) return false;
+      const nick   = (isPersona ? (post.nickname || '') : (u.nickname || '')).toLowerCase();
+      const region = (isPersona ? (post.region   || '') : (u.region   || '')).toLowerCase();
+      const body   = (post.content || '').toLowerCase();
+      if (!nick.includes(txt) && !region.includes(txt) && !body.includes(txt)) return false;
     }
     return true;
   });
@@ -145,11 +143,25 @@ export default function Feed() {
 
       <div className="post-list">
         {filtered.map(post => {
+          const isPersona = post.personaMode === true;
           const u         = users[post.uid] || {};
           const isBlocked = blockedUsers.includes(post.uid);
-          const photo     = isBlocked ? defaultProfile : (u.photoURL || defaultProfile);
-          const nick      = u.nickname || '알 수 없음';
-          const content   = isBlocked ? '차단한 유저의 게시글입니다' : post.content;
+
+          const photo = isBlocked
+            ? defaultProfile
+            : (isPersona
+                ? (post.photoURL || defaultProfile)
+                : (u.photoURL || defaultProfile));
+
+          const nick = isPersona
+            ? (post.nickname || '알 수 없음')
+            : (u.nickname || '알 수 없음');
+
+          const gender = isPersona ? post.gender : u.gender;
+          const age    = isPersona ? post.age    : u.age;
+          const region = isPersona ? post.region : u.region;
+
+          const content = isBlocked ? '차단한 유저의 게시글입니다' : post.content;
 
           return (
             <div
@@ -173,7 +185,7 @@ export default function Feed() {
                   <h3>{nick}</h3>
                   {!isBlocked && (
                     <p>
-                      {u.age || '--'}세 · {u.gender==='male'?'남자':'여자'} · {u.region || '--'} · {timeAgo(post.createdAt)}
+                      {(age ?? '--')}세 · {gender==='male'?'남자':(gender==='female'?'여자':'--')} · {region || '--'} · {timeAgo(post.createdAt)}
                     </p>
                   )}
                 </div>
@@ -195,7 +207,7 @@ export default function Feed() {
         <img src={require('../assets/plus-icon.png')} alt="글쓰기" />
       </div>
 
-      {/* ▲ 맨 위로 버튼 (스크롤 시 페이드인) ★ 추가 */}
+      {/* ▲ 맨 위로 버튼 */}
       <button
         type="button"
         className={`scroll-top ${showTop ? 'visible' : ''}`}

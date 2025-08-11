@@ -1,4 +1,4 @@
-// src/components/ChatRoom.jsx
+// 경로: src/components/ChatRoom.jsx
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate }            from 'react-router-dom';
@@ -15,7 +15,8 @@ import {
   arrayRemove,
   arrayUnion,
   serverTimestamp,
-  increment
+  increment,
+  deleteDoc
 } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import defaultProfile from '../assets/default-profile.png';
@@ -26,12 +27,116 @@ import CoinModal      from './CoinModal';
 import ImageModal     from './ImageModal';
 import '../styles/ChatRoom.css';
 
+const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
+
+// ===== E2EE helpers (최소 추가) =====
+const KEYPAIR_STORAGE = 'e2ee:keypair:v1';
+
+const ab2b64 = (buf) => {
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+};
+const b642ab = (b64) => {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+};
+
+async function importPrivateJwk(jwk) {
+  return crypto.subtle.importKey(
+    'jwk',
+    jwk,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    ['deriveKey', 'deriveBits']
+  );
+}
+async function importPublicJwk(jwk) {
+  return crypto.subtle.importKey(
+    'jwk',
+    jwk,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    []
+  );
+}
+async function exportJwk(key) {
+  return crypto.subtle.exportKey('jwk', key);
+}
+
+async function getOrCreateMyKeypair(uid) {
+  const cached = localStorage.getItem(KEYPAIR_STORAGE);
+  if (cached) {
+    const { pub, priv } = JSON.parse(cached);
+    return {
+      publicKey: await importPublicJwk(pub),
+      privateKey: await importPrivateJwk(priv),
+      pubJwk: pub
+    };
+  }
+  const keypair = await crypto.subtle.generateKey(
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    ['deriveKey', 'deriveBits']
+  );
+  const pubJwk  = await exportJwk(keypair.publicKey);
+  const privJwk = await exportJwk(keypair.privateKey);
+  localStorage.setItem(KEYPAIR_STORAGE, JSON.stringify({ pub: pubJwk, priv: privJwk }));
+  // 내 공개키를 users/{uid}.e2eePub 에 저장(없을 때만)
+  try {
+    const uref  = doc(db, 'users', uid);
+    const usnap = await getDoc(uref);
+    const cur   = usnap.data() || {};
+    if (!cur.e2eePub) {
+      await updateDoc(uref, { e2eePub: pubJwk }).catch(async () => {
+        // users 문서가 없을 수 있으니 set 대체는 하지 않음(기존 로직 보존)
+      });
+    }
+  } catch {}
+  return { publicKey: keypair.publicKey, privateKey: keypair.privateKey, pubJwk };
+}
+
+async function getOtherPublicKey(otherUid) {
+  if (!otherUid) return null;
+  const usnap = await getDoc(doc(db, 'users', otherUid));
+  const data = usnap.data();
+  if (!data || !data.e2eePub) return null;
+  return importPublicJwk(data.e2eePub);
+}
+
+async function deriveAesKey(myPrivKey, otherPubKey) {
+  // ECDH → AES-GCM(256)
+  return crypto.subtle.deriveKey(
+    { name: 'ECDH', public: otherPubKey },
+    myPrivKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptText(aesKey, plain) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder().encode(plain);
+  const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, enc);
+  return { iv: ab2b64(iv), ct: ab2b64(ct) };
+}
+async function decryptText(aesKey, ivB64, ctB64) {
+  const iv = new Uint8Array(b642ab(ivB64));
+  const ct = b642ab(ctB64);
+  const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, aesKey, ct);
+  return new TextDecoder().decode(buf);
+}
+// ====================================
+
 export default function ChatRoom() {
   const { roomId } = useParams();
   const navigate  = useNavigate();
   const me        = auth.currentUser?.uid;
 
-  // --- bottom-nav 숨김 처리를 위한 사이드 이펙트 ---
   useEffect(() => {
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
@@ -51,7 +156,16 @@ export default function ChatRoom() {
   const [imgModalSrc,  setImgModalSrc]  = useState(null);
   const bottomRef                       = useRef();
 
-  // 파일 첨부 ref & 핸들러
+  // 상단 고정카드용 포스트
+  const [pinnedPost, setPinnedPost] = useState(undefined); // undefined=로딩, null=삭제됨
+
+  // 메시지 존재 여부
+  const hasAnyMessageRef = useRef(false);
+
+  // E2EE 준비 상태
+  const aesKeyRef     = useRef(null);
+  const e2eeReadyRef  = useRef(false);
+
   const fileInputRef = useRef(null);
   const handleAttachClick = () => fileInputRef.current.click();
   const handleFileChange = async e => {
@@ -69,7 +183,6 @@ export default function ChatRoom() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 내 차단 목록 로드
   useEffect(() => {
     if (!me) return;
     getDoc(doc(db, 'users', me)).then(snap => {
@@ -77,7 +190,31 @@ export default function ChatRoom() {
     });
   }, [me]);
 
-  // 방 정보 & 상대 & 메시지 구독
+  // E2EE 준비
+  const prepareE2EE = async (myUid, peerUid) => {
+    try {
+      if (!myUid || !peerUid) {
+        e2eeReadyRef.current = false;
+        aesKeyRef.current = null;
+        return;
+      }
+      const { privateKey } = await getOrCreateMyKeypair(myUid);
+      const peerPub = await getOtherPublicKey(peerUid);
+      if (!peerPub) {
+        // 상대 공개키 없으면 아직 E2EE 불가
+        e2eeReadyRef.current = false;
+        aesKeyRef.current = null;
+        return;
+      }
+      const aesKey = await deriveAesKey(privateKey, peerPub);
+      aesKeyRef.current = aesKey;
+      e2eeReadyRef.current = true;
+    } catch {
+      e2eeReadyRef.current = false;
+      aesKeyRef.current = null;
+    }
+  };
+
   useEffect(() => {
     if (!me) {
       navigate('/', { replace: true });
@@ -89,7 +226,7 @@ export default function ChatRoom() {
     }
 
     const roomRef = doc(db, 'chatRooms', roomId);
-    const unsubR = onSnapshot(roomRef, snap => {
+    const unsubR = onSnapshot(roomRef, async snap => {
       if (!snap.exists()) {
         alert('채팅방이 없습니다.');
         navigate('/messages', { replace: true });
@@ -98,16 +235,28 @@ export default function ChatRoom() {
       const data = snap.data();
       setRoom(data);
 
-      const other = data.members.find(u => u !== me) || null;
+      const other = data.members?.find(u => u !== me) ?? null;
       setOtherUid(other);
 
       if (other) {
-        getDoc(doc(db, 'users', other)).then(us => {
-          setOtherUser(us.exists() ? us.data() : { deleted: true });
-        });
+        const us = await getDoc(doc(db, 'users', other));
+        setOtherUser(us.exists() ? us.data() : { deleted: true });
+        // E2EE 준비
+        await prepareE2EE(me, other);
       } else {
         setOtherUser({});
+        e2eeReadyRef.current = false;
+        aesKeyRef.current = null;
       }
+
+      // 상단 카드용 원본 포스트 (일반글/페르소나글 공통)
+if (data.personaPostId) {
+  const p = await getDoc(doc(db, 'posts', data.personaPostId));
+  setPinnedPost(p.exists() ? { id: p.id, ...p.data() } : null);
+} else {
+  setPinnedPost(undefined);
+}
+
     });
 
     const unsubM = onSnapshot(
@@ -115,8 +264,25 @@ export default function ChatRoom() {
         collection(db, 'chatRooms', roomId, 'messages'),
         orderBy('sentAt')
       ),
-      snap => {
-        setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      async snap => {
+        // 암호문 있으면 복호화해서 text 필드에 주입(렌더 로직 변경 없음)
+        const listRaw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const list = [];
+        for (const m of listRaw) {
+          if (m.cipher && e2eeReadyRef.current && aesKeyRef.current) {
+            try {
+              const plain = await decryptText(aesKeyRef.current, m.cipher.iv, m.cipher.ct);
+              list.push({ ...m, text: plain });
+            } catch {
+              // 복호화 실패 시 표시 깨지지 않도록 빈 문자열
+              list.push({ ...m, text: '' });
+            }
+          } else {
+            list.push(m);
+          }
+        }
+        setMessages(list);
+        hasAnyMessageRef.current = list.length > 0;
         setTimeout(
           () => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }),
           50
@@ -130,19 +296,35 @@ export default function ChatRoom() {
     };
   }, [navigate, roomId, me]);
 
+  // 언마운트 시: 메시지 없으면 방 삭제
+  useEffect(() => {
+    return () => {
+      if (!roomId) return;
+      if (hasAnyMessageRef.current) return;
+      deleteDoc(doc(db, 'chatRooms', roomId)).catch(() => {});
+    };
+  }, [roomId]);
+
   const iBlockedThem  = blockedUsers.includes(otherUid);
   const theyBlockedMe = otherUser.blockedUsers?.includes(me);
   const otherLeft     = otherUid === null;
   const unknownDel    = otherUser.deleted;
   const cannotSend    = iBlockedThem || theyBlockedMe || otherLeft || unknownDel;
 
-  const avatarSrc = cannotSend
-    ? defaultProfile
-    : otherUser.photoURL || defaultProfile;
+  const personaMode = room?.personaMode === true;
+  const isAdmin     = me === ADMIN_UID;
 
-  const displayName = (otherLeft || unknownDel)
-    ? '알 수 없음'
-    : otherUser.nickname;
+  const avatarSrc = personaMode
+    ? (isAdmin
+        ? (cannotSend ? defaultProfile : otherUser.photoURL || defaultProfile)
+        : (room?.personaPhotoURL || defaultProfile))
+    : (cannotSend ? defaultProfile : otherUser.photoURL || defaultProfile);
+
+  const displayName = personaMode
+    ? (isAdmin
+        ? ((otherLeft || unknownDel) ? '알 수 없음' : otherUser.nickname)
+        : (room?.personaNickname || '관리자'))
+    : ((otherLeft || unknownDel) ? '알 수 없음' : otherUser.nickname);
 
   const formatRelativeTime = ts => {
     if (!ts?.toMillis) return '';
@@ -160,16 +342,43 @@ export default function ChatRoom() {
   const actuallySend = async () => {
     const txt = input.trim();
     if (!txt) return;
+
+    // 암호화 모드
+    if (e2eeReadyRef.current && aesKeyRef.current) {
+      try {
+        const { iv, ct } = await encryptText(aesKeyRef.current, txt);
+        await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
+          cipher: { v: 1, iv, ct },
+          sender: me,
+          sentAt: serverTimestamp()
+        });
+        setInput('');
+        // lastMessageCipher 저장(미리보기 복호화 전용)
+        const targetUid = personaMode ? (isAdmin ? otherUid : ADMIN_UID) : otherUid;
+        await updateDoc(doc(db, 'chatRooms', roomId), {
+          lastMessage: '', // 평문 미리보기 제거
+          lastMessageCipher: { v: 1, iv, ct },
+          lastAt: serverTimestamp(),
+          ...(targetUid ? { [`unread.${targetUid}`]: increment(1) } : {})
+        });
+        return;
+      } catch {
+        // 암호화 실패 시 평문 fallback
+      }
+    }
+
+    // 평문 fallback (상대 공개키 미존재 등)
     await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
       text:   txt,
       sender: me,
       sentAt: serverTimestamp()
     });
     setInput('');
+    const targetUid = personaMode ? (isAdmin ? otherUid : ADMIN_UID) : otherUid;
     await updateDoc(doc(db, 'chatRooms', roomId), {
       lastMessage: txt,
       lastAt:      serverTimestamp(),
-      [`unread.${otherUid}`]: increment(1)
+      ...(targetUid ? { [`unread.${targetUid}`]: increment(1) } : {})
     });
   };
 
@@ -197,6 +406,13 @@ export default function ChatRoom() {
   const handleLeave   = async () => {
     setMenuOpen(false);
     if (!window.confirm('정말 채팅방을 나가시겠습니까?')) return;
+
+    if (!hasAnyMessageRef.current) {
+      await deleteDoc(doc(db, 'chatRooms', roomId)).catch(() => {});
+      navigate('/messages', { replace: true });
+      return;
+    }
+
     await updateDoc(doc(db, 'chatRooms', roomId), {
       members: arrayRemove(me)
     });
@@ -256,6 +472,29 @@ export default function ChatRoom() {
       </header>
 
       <div className="chatroom-messages">
+        {/* 상단 고정 카드: personaPostId가 있으면 1개 표시 */}
+{room?.personaPostId && (
+          <div className="pinned-post-card">
+            {pinnedPost === undefined ? (
+              <div className="pinned-loading">불러오는 중…</div>
+            ) : pinnedPost === null ? (
+              <div className="pinned-deleted">삭제된 게시글입니다</div>
+            ) : (
+              <>
+                <div className="pinned-title">
+                  {(room.personaTitle || '게시글')}
+                </div>
+                <button
+                  className="pinned-goto-btn"
+                  onClick={() => navigate(`/post/${room.personaPostId}`)}
+                >
+                  게시글로 이동
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {messages.map(msg => (
           <div
             key={msg.id}

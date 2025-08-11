@@ -195,3 +195,23 @@
   color: #333;
   pointer-events: none; /* 뒤로가기·메뉴 버튼 클릭 간섭 방지 */
 }
+
+
+/* 관리자 전용 두 컬럼 레이아웃 */
+.msglist-two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.msglist-col-title {
+  font-weight: 700;
+  color: #444;
+  margin-bottom: 8px;
+}
+
+/* 화면이 아주 좁을 때는 1열로 자동 접기 (선택 사항) */
+@media (max-width: 380px) {
+  .msglist-two-cols {
+    grid-template-columns: 1fr;
+  }
+}

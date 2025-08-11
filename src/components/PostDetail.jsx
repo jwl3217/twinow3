@@ -25,6 +25,8 @@ import ImageModal          from './ImageModal';
 import '../styles/PostDetail.css';
 import '../styles/feed.css';
 
+const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03'; // ★ 관리자 UID
+
 export default function PostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -45,8 +47,9 @@ export default function PostDetail() {
         alert('게시글을 찾을 수 없습니다.');
         return navigate('/feed', { replace: true });
       }
-      setPost(pSnap.data());
-      const uSnap = await getDoc(doc(db, 'users', pSnap.data().uid));
+      const pData = pSnap.data();
+      setPost(pData);
+      const uSnap = await getDoc(doc(db, 'users', pData.uid));
       setWriter(uSnap.exists() ? uSnap.data() : {});
     })();
   }, [id, navigate]);
@@ -61,15 +64,21 @@ export default function PostDetail() {
 
   if (!post || !writer) return null;
 
-  const isOwner       = me === post.uid;
+  // ====== 페르소나 모드일 때는 post의 필드 우선 사용 ======
+  const usePersona = post.personaMode === true;
+
   const iBlockedThem  = blockedUsers.includes(post.uid);
   const theyBlockedMe = writer.blockedUsers?.includes(me);
   const shouldMask    = iBlockedThem && !showHidden;
 
-  const displayName  = writer.nickname;
+  const displayName  = usePersona ? (post.nickname || '알 수 없음') : writer.nickname;
   const displayPhoto = shouldMask
     ? defaultProfile
-    : writer.photoURL || defaultProfile;
+    : (usePersona ? (post.photoURL || defaultProfile) : (writer.photoURL || defaultProfile));
+
+  const dispAge    = usePersona ? post.age    : writer.age;
+  const dispGender = usePersona ? post.gender : writer.gender;
+  const dispRegion = usePersona ? post.region : writer.region;
 
   const timeAgo = ts => {
     if (!ts?.toMillis) return '';
@@ -90,6 +99,7 @@ export default function PostDetail() {
     await deleteDoc(doc(db, 'posts', id));
     navigate('/feed', { replace: true });
   };
+
   const handleBlock = async () => {
     if (!window.confirm('정말 차단하시겠습니까?')) return;
     await updateDoc(doc(db, 'users', me), {
@@ -98,6 +108,7 @@ export default function PostDetail() {
     setBlockedUsers(prev => [...prev, post.uid]);
     setMenuOpen(false);
   };
+
   const handleUnblock = async () => {
     if (!window.confirm('차단을 해제하시겠습니까?')) return;
     await updateDoc(doc(db, 'users', me), {
@@ -108,37 +119,103 @@ export default function PostDetail() {
     setMenuOpen(false);
   };
 
+  // ★ 제목/요약 유틸(채팅방 상단 카드용)
+  const deriveTitle = (text = '') => {
+    const oneline = String(text).split('\n')[0].trim();
+    return oneline.length > 20 ? oneline.slice(0, 20) + '…' : oneline || '게시글';
+  };
+  const deriveExcerpt = (text = '') => {
+    const one = text.replace(/\s+/g, ' ').trim();
+    const limit = 60;
+    return one.length > limit ? one.slice(0, limit) + ' …더보기' : one;
+  };
+
+  // ★ 글 기준 채팅방 생성/접속
   const handleChat = async () => {
-    if (iBlockedThem || theyBlockedMe) {
-      alert('채팅을 할 수 없습니다');
-      return;
-    }
     const user = auth.currentUser;
     if (!user) {
       alert('로그인이 필요합니다.');
       return navigate('/', { replace: true });
     }
-    const myUid    = user.uid;
-    const otherUid = post.uid;
-    const members  = [myUid, otherUid].sort();
-
-    const roomsCol = collection(db, 'chatRooms');
-    const q        = query(roomsCol, where('members', 'array-contains', myUid));
-    const snap     = await getDocs(q);
-    const exist    = snap.docs.find(d => d.data().members.includes(otherUid));
-    if (exist) {
-      return navigate(`/chat/${exist.id}`);
+    if (iBlockedThem || theyBlockedMe) {
+      alert('채팅을 할 수 없습니다');
+      return;
     }
-    const newRef = doc(roomsCol);
-    await setDoc(newRef, {
-      members,
+
+    const myUid = user.uid;
+
+    if (post.personaMode === true) {
+      // ① 내 uid + 이 게시글(personaPostId)로 만든 방 재사용
+      const roomsCol = collection(db, 'chatRooms');
+      const qRooms   = query(
+        roomsCol,
+        where('members', 'array-contains', myUid),
+        where('personaPostId', '==', id)
+      );
+      const existSnap = await getDocs(qRooms);
+      if (!existSnap.empty) {
+        return navigate(`/chat/${existSnap.docs[0].id}`);
+      }
+
+      // ② 없으면 생성 (멤버: 나 + 관리자)
+      const newRef = doc(roomsCol);
+      await setDoc(newRef, {
+        members: [myUid, ADMIN_UID].sort(),
+        lastMessage: '',
+        lastAt:      serverTimestamp(),
+        unlocked:    { [myUid]: false, [ADMIN_UID]: false },
+        coins:       { [myUid]: 0,     [ADMIN_UID]: 0 },
+
+        // 페르소나 전용 메타
+        personaMode:     true,
+        personaPostId:   id,
+        personaNickname: post.nickname || '관리자',
+        personaPhotoURL: post.photoURL || '',
+        personaTitle:    deriveTitle(post.content || ''),
+        personaExcerpt:  deriveExcerpt(post.content || '')
+      });
+      return navigate(`/chat/${newRef.id}`);
+    }
+
+    // (일반 글) 기존 1:1 방 있으면 재사용 + 카드 메타 업sert
+    const otherUid2 = post.uid;
+    const members2  = [myUid, otherUid2].sort();
+
+    const roomsCol2 = collection(db, 'chatRooms');
+    const q2        = query(roomsCol2, where('members', 'array-contains', myUid));
+    const snap2     = await getDocs(q2);
+    const exist2    = snap2.docs.find(d => d.data().members.includes(otherUid2));
+
+    if (exist2) {
+      // ★ 기존 방에 카드 메타만 주입 (상단 카드 1개 노출용)
+      const exRef = doc(roomsCol2, exist2.id);
+      await updateDoc(exRef, {
+        personaPostId: id,
+        personaTitle:  deriveTitle(post.content || '')
+        // (excerpt는 ChatRoom에서 사용하지 않으니 생략)
+      }).catch(() => {});
+      return navigate(`/chat/${exist2.id}`);
+    }
+
+    // ★ 새 방 생성 시에도 카드 메타 포함
+    const newRef2 = doc(roomsCol2);
+    await setDoc(newRef2, {
+      members: members2,
       lastMessage: '',
       lastAt:      serverTimestamp(),
-      unlocked:    { [myUid]: false, [otherUid]: false },
-      coins:       { [myUid]: 0,     [otherUid]: 0 }
+      unlocked:    { [myUid]: false, [otherUid2]: false },
+      coins:       { [myUid]: 0,     [otherUid2]: 0 },
+
+      // 카드 메타(일반 글)
+      personaPostId: id,
+      personaTitle:  deriveTitle(post.content || '')
     });
-    navigate(`/chat/${newRef.id}`);
+    navigate(`/chat/${newRef2.id}`);
   };
+
+  const genderLabel =
+    dispGender === 'male' ? '남자' :
+    dispGender === 'female' ? '여자' : '--';
 
   return (
     <div className="post-detail-container">
@@ -165,13 +242,13 @@ export default function PostDetail() {
               <h3>{displayName}</h3>
               {!shouldMask && (
                 <p>
-                  {writer.age}세 · {writer.gender==='male'?'남자':'여자'} ·{' '}
-                  {writer.region} · {timeAgo(post.createdAt)}
+                  {(dispAge ?? '--')}세 · {genderLabel} · {dispRegion || '--'} · {timeAgo(post.createdAt)}
                 </p>
               )}
             </div>
 
-            {!isOwner && !iBlockedThem && !theyBlockedMe && (
+            {/* 차단상태만 제외하고 항상 노출 (관리자 페르소나/일반 모두 지원) */}
+            {!(iBlockedThem || theyBlockedMe) && (
               <button className="chat-button" onClick={handleChat}>
                 1:1 채팅
               </button>
@@ -185,7 +262,7 @@ export default function PostDetail() {
             </button>
             {menuOpen && (
               <div className="menu-dropdown">
-                {isOwner ? (
+                {me === post.uid ? (
                   <>
                     <button onClick={() => navigate(`/post/${id}/edit`)}>수정</button>
                     <button onClick={handleDelete}>삭제</button>
