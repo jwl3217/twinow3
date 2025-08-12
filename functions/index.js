@@ -127,7 +127,7 @@ export const cronDeleteAuthUsers = onSchedule(
         await admin.auth().deleteUser(uid);
       } catch (e) {
         if (e && e.code === 'auth/user-not-found') {
-          // 이미 삭제됨
+          // 이미 삭제됨 → 큐 정리
         } else {
           // 실패 → 다음 주기에 재시도(문서 유지)
           continue;

@@ -134,9 +134,7 @@ export default function ChatRoom() {
   useEffect(() => {
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
-    return () => {
-      if (bottomNav) bottomNav.style.display = '';
-    };
+    return () => { if (bottomNav) bottomNav.style.display = ''; };
   }, []);
 
   const [room,         setRoom]         = useState(null);
@@ -220,9 +218,14 @@ export default function ChatRoom() {
         aesKeyRef.current = null;
       }
 
+      // ⬇️ 여기만 되돌림: posts_public → posts (그리고 try/catch로 보호)
       if (data.personaPostId) {
-        const p = await getDoc(doc(db, 'posts', data.personaPostId));
-        setPinnedPost(p.exists() ? { id: p.id, ...p.data() } : null);
+        try {
+          const p = await getDoc(doc(db, 'posts', data.personaPostId));
+          setPinnedPost(p.exists() ? { id: p.id, ...p.data() } : null);
+        } catch {
+          setPinnedPost(null);
+        }
       } else {
         setPinnedPost(undefined);
       }
@@ -294,7 +297,6 @@ export default function ChatRoom() {
     if (!ts?.toMillis) return '';
     const diff = Date.now() - ts.toMillis();
     const sec  = Math.floor(diff / 1000);
-    // ⬇️ 60초 미만은 '0분 전'로 고정
     if (sec < 60) return `0분 전`;
     const min = Math.floor(sec / 60);
     if (min < 60) return `${min}분 전`;
@@ -399,7 +401,6 @@ export default function ChatRoom() {
 
   if (!room) return null;
 
-  // ✅ 고객지원 채팅 여부 판단(플래그 우선, 없으면 관리자와의 1:1로 추정)
   const isSupportChat =
     room?.isSupport === true ||
     ((room?.members || []).includes(ADMIN_UID) && room?.personaMode !== true);
@@ -447,9 +448,7 @@ export default function ChatRoom() {
                     preventAutoDeleteRef.current = true;
                     if (!hasAnyMessageRef.current && me) {
                       try {
-                        await updateDoc(doc(db, 'chatRooms', roomId), {
-                          ghostHoldBy: me
-                        });
+                        await updateDoc(doc(db, 'chatRooms', roomId), { ghostHoldBy: me });
                       } catch {}
                     }
                     navigate(`/post/${room.personaPostId}`);
@@ -462,14 +461,12 @@ export default function ChatRoom() {
           </div>
         )}
 
-        {/* ✅ 지원 채팅 안내: 최초에만 */}
         {messages.length === 0 && isSupportChat && (
           <div style={{ textAlign: 'center', fontSize: 12, color: '#666', margin: '12px 0' }}>
             관리자와의 채팅이 시작되었습니다
           </div>
         )}
 
-        {/* ✅ 암호화 안내: 항상 표시 (사라지지 않음) */}
         <div style={{ textAlign: 'center', fontSize: 12, color: '#666', margin: '8px 0' }}>
           채팅 정보는 암호화되어 보관되며, 관리자가 확인할 수 없습니다.
         </div>
@@ -523,11 +520,7 @@ export default function ChatRoom() {
           {modalType && (
             <CoinModal
               type={modalType}
-              onConfirm={
-                modalType === 'noCoin'
-                  ? () => navigate('/shop')
-                  : handleUseCoinConfirm
-              }
+              onConfirm={modalType === 'noCoin' ? () => navigate('/shop') : handleUseCoinConfirm}
               onCancel={() => setModalType(null)}
             />
           )}

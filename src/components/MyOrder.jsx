@@ -29,6 +29,9 @@ export default function MyOrder() {
   const [askCancel, setAskCancel] = useState(false);
   const [faqOpen, setFaqOpen] = useState(false);   // FAQ 토글
 
+  // ✅ 추가: 인증 준비 플래그 (인증 후에만 스냅샷 구독)
+  const [authReady, setAuthReady] = useState(false);
+
   // 내가 직접 취소했는지 여부(스냅샷에서 "주문을 찾을 수 없습니다" 경고 방지)
   const canceledByMeRef = useRef(false);
 
@@ -36,6 +39,7 @@ export default function MyOrder() {
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       if (!u) return nav('/', { replace: true });
+      setAuthReady(true); // ✅ 인증 완료
     });
     return () => unsubAuth();
   }, [nav]);
@@ -43,6 +47,8 @@ export default function MyOrder() {
   // 주문 구독
   useEffect(() => {
     if (!id) return nav('/shop', { replace: true });
+    if (!authReady) return; // ✅ 인증 준비 전에는 구독하지 않음
+
     const ref = doc(db, 'order', id);
     const unsub = onSnapshot(ref, (snap) => {
       if (!snap.exists()) {
@@ -62,7 +68,7 @@ export default function MyOrder() {
       setOrder({ id: snap.id, ...d });
     });
     return () => unsub();
-  }, [id, nav]);
+  }, [id, nav, authReady]); // ✅ authReady 의존성 추가
 
   // 주문 취소: order/<id> → canceledorder/<id> + canceledAt
   const cancelOrder = async () => {

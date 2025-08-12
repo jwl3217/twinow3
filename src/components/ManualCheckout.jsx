@@ -1,4 +1,4 @@
-// src/components/ManualCheckout.jsx
+// src/components/ManualCheckout.jsx 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -45,13 +45,21 @@ export default function ManualCheckout() {
     if (!name) return alert('입금자명을 입력해 주세요.');
     setSaving(true);
     try {
-      const q = query(collection(db, 'order'), where('uid', '==', uid), where('orderstate', '==', 'incomplete'), limit(1));
-      const snap = await getDocs(q);
+      // 진행중 주문 중복 생성 방지
+      const qExisting = query(
+        collection(db, 'order'),
+        where('uid', '==', uid),
+        where('orderstate', '==', 'incomplete'),
+        limit(1)
+      );
+      const snap = await getDocs(qExisting);
       if (!snap.empty) {
         const exists = snap.docs[0];
         alert('이미 진행 중인 주문이 있습니다.');
-        return nav(`/my-order/${exists.id}`, { replace: true });
+        return nav(`/my-order/${exists.id}`, { replace: true }); // ← 경로 수정
       }
+
+      // 주문 생성
       const ref = await addDoc(collection(db, 'order'), {
         uid,
         orderstate: 'incomplete',
@@ -60,7 +68,9 @@ export default function ManualCheckout() {
         depositorName: name,
         createdAt: serverTimestamp(),
       });
-      nav(`/my-order/${ref.id}`, { replace: true });
+
+      // 주문 상세로 이동
+      nav(`/my-order/${ref.id}`, { replace: true }); // ← 경로 수정
     } catch (e) {
       console.error(e);
       alert('주문 생성 중 오류가 발생했습니다.');
@@ -85,7 +95,7 @@ export default function ManualCheckout() {
           <p className="checkout-text">
             <b>코인 {coins.toLocaleString()}개</b> 주문하기
           </p>
-          <p className="checkout-text">{' '}
+          <p className="checkout-text">
             <b>{amount.toLocaleString()}원</b>을 입금하실 <b>입금자명</b>을 적고 확인을 눌러 주세요.
           </p>
 
