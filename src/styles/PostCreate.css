@@ -94,3 +94,9 @@
   background: #ccc;
   cursor: not-allowed;
 }
+
+
+.create-json {
+  width: 100%;       /* 부모 요소의 전체 폭 */
+  max-width: 600px;  /* 원하는 최대 가로 길이 */
+}

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate }            from 'react-router-dom';
-import { auth, db, storage }                 from '../firebaseConfig';
+import { auth, db }                          from '../firebaseConfig';
 import {
   collection,
   doc,
@@ -18,7 +18,6 @@ import {
   increment,
   deleteDoc
 } from 'firebase/firestore';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import defaultProfile from '../assets/default-profile.png';
 import backArrow      from '../assets/back-arrow.png';
 import threeDotsIcon  from '../assets/three-dots-icon.png';
@@ -85,7 +84,6 @@ async function getOrCreateMyKeypair(uid) {
   const pubJwk  = await exportJwk(keypair.publicKey);
   const privJwk = await exportJwk(keypair.privateKey);
   localStorage.setItem(KEYPAIR_STORAGE, JSON.stringify({ pub: pubJwk, priv: privJwk }));
-  // 내 공개키를 users/{uid}.e2eePub 에 저장(없을 때만)
   try {
     const uref  = doc(db, 'users', uid);
     const usnap = await getDoc(uref);
@@ -106,7 +104,6 @@ async function getOtherPublicKey(otherUid) {
 }
 
 async function deriveAesKey(myPrivKey, otherPubKey) {
-  // ECDH → AES-GCM(256)
   return crypto.subtle.deriveKey(
     { name: 'ECDH', public: otherPubKey },
     myPrivKey,
@@ -154,35 +151,12 @@ export default function ChatRoom() {
   const [imgModalSrc,  setImgModalSrc]  = useState(null);
   const bottomRef                       = useRef();
 
-  // 상단 고정카드용 포스트
-  const [pinnedPost, setPinnedPost] = useState(undefined); // undefined=로딩, null=삭제됨
-
-  // 메시지 존재 여부
+  const [pinnedPost, setPinnedPost] = useState(undefined);
   const hasAnyMessageRef = useRef(false);
-
-  // ✅ 게시글로 이동 클릭 시 자동삭제 방지 플래그
   const preventAutoDeleteRef = useRef(false);
 
-  // E2EE 준비 상태
   const aesKeyRef     = useRef(null);
   const e2eeReadyRef  = useRef(false);
-
-  const fileInputRef = useRef(null);
-  const handleAttachClick = () => fileInputRef.current.click();
-  const handleFileChange = async e => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const path = `chatRooms/${roomId}/${Date.now()}_${file.name}`;
-    const ref  = storageRef(storage, path);
-    await uploadBytes(ref, file);
-    const url  = await getDownloadURL(ref);
-    await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
-      imageUrl: url,
-      sender: me,
-      sentAt: serverTimestamp()
-    });
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   useEffect(() => {
     if (!me) return;
@@ -191,7 +165,6 @@ export default function ChatRoom() {
     });
   }, [me]);
 
-  // E2EE 준비
   const prepareE2EE = async (myUid, peerUid) => {
     try {
       if (!myUid || !peerUid) {
@@ -248,7 +221,6 @@ export default function ChatRoom() {
         aesKeyRef.current = null;
       }
 
-      // 상단 카드용 원본 포스트 (일반글/페르소나글 공통)
       if (data.personaPostId) {
         const p = await getDoc(doc(db, 'posts', data.personaPostId));
         setPinnedPost(p.exists() ? { id: p.id, ...p.data() } : null);
@@ -289,12 +261,11 @@ export default function ChatRoom() {
     };
   }, [navigate, roomId, me]);
 
-  // 언마운트 시: 메시지 없으면 방 삭제 (게시글 이동 시 스킵)
   useEffect(() => {
     return () => {
       if (!roomId) return;
       if (hasAnyMessageRef.current) return;
-      if (preventAutoDeleteRef.current) return; // ✅ 스킵
+      if (preventAutoDeleteRef.current) return;
       deleteDoc(doc(db, 'chatRooms', roomId)).catch(() => {});
     };
   }, [roomId]);
@@ -337,7 +308,6 @@ export default function ChatRoom() {
     const txt = input.trim();
     if (!txt) return;
 
-    // 암호화 모드
     if (e2eeReadyRef.current && aesKeyRef.current) {
       try {
         const { iv, ct } = await encryptText(aesKeyRef.current, txt);
@@ -352,14 +322,12 @@ export default function ChatRoom() {
           lastMessage: '',
           lastMessageCipher: { v: 1, iv, ct },
           lastAt: serverTimestamp(),
-          ...(targetUid ? { [`unread.${targetUid}`]: increment(1) } : {}),
-          // 메시지가 생기면 누가 만들었든 양쪽 모두 보이므로 ghostHoldBy는 그대로 두어도 무관
+          ...(targetUid ? { [`unread.${targetUid}`]: increment(1) } : {})
         });
         return;
       } catch {}
     }
 
-    // 평문 fallback
     await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
       text:   txt,
       sender: me,
@@ -457,7 +425,6 @@ export default function ChatRoom() {
       </header>
 
       <div className="chatroom-messages">
-        {/* 상단 고정 카드: personaPostId가 있으면 1개 표시 */}
         {room?.personaPostId && (
           <div className="pinned-post-card">
             {pinnedPost === undefined ? (
@@ -472,7 +439,6 @@ export default function ChatRoom() {
                 <button
                   className="pinned-goto-btn"
                   onClick={async () => {
-                    // ✅ 게시글로 이동 → 자동삭제 방지 + 내 리스트 전용 표시
                     preventAutoDeleteRef.current = true;
                     if (!hasAnyMessageRef.current && me) {
                       try {
@@ -488,6 +454,12 @@ export default function ChatRoom() {
                 </button>
               </>
             )}
+          </div>
+        )}
+
+        {messages.length === 0 && (
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#666', margin: '12px 0' }}>
+            채팅 정보는 암호화되어 보관되며, 관리자가 확인할 수 없습니다.
           </div>
         )}
 
@@ -526,21 +498,12 @@ export default function ChatRoom() {
         <>
           <div className="chatroom-input-wrap">
             <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-            />
-            <button className="attach-btn" onClick={handleAttachClick}>
-              +
-            </button>
-            <input
               className="chatroom-input"
               placeholder="메시지를 입력하세요..."
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
+              style={{ flex: 1 }}
             />
             <button className="send-btn" onClick={handleSend}>
               <img src={sendIcon} alt="전송" />

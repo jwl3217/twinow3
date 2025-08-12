@@ -1,5 +1,5 @@
 // 경로: src/components/Home.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate }      from 'react-router-dom';
 import {
   GoogleAuthProvider,
@@ -20,7 +20,11 @@ export default function Home() {
   const [agreeInfo, setAgreeInfo]   = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [openModal, setOpenModal]   = useState(null);  // 'about' | 'terms' | null
-  const [isLoginMode, setIsLoginMode] = useState(false); // ← 로그인 모드 토글
+  const [isLoginMode, setIsLoginMode] = useState(false); // 로그인 모드 토글
+
+  // 로그인 모드 진입 전 체크 상태 저장
+  const prevAgreeInfoRef  = useRef(false);
+  const prevAgreeTermsRef = useRef(false);
 
   const canLogin = agreeInfo && agreeTerms;
 
@@ -58,7 +62,7 @@ export default function Home() {
   };
 
   const handleProviderLogin = async provider => {
-    // 가입 모드일 때만 체크 강제, 로그인 모드는 무시하고 진행
+    // 가입 모드일 때만 체크 강제, 로그인 모드는 체크 무시하고 진행
     if (!isLoginMode && !canLogin) return;
 
     try {
@@ -94,7 +98,7 @@ export default function Home() {
         }
 
         if (bannedUntil) {
-          alert(`${fmt(bannedUntil)} 이후부터재가입이 가능합니다.`);
+          alert(`${fmt(bannedUntil)} 이후부터 재가입이 가능합니다.`);
           await auth.signOut?.();
           return;
         }
@@ -153,6 +157,10 @@ export default function Home() {
   const googleLabel  = isLoginMode ? 'google로 로그인'  : 'google로 회원가입';
   const twitterLabel = isLoginMode ? 'twitter로 로그인' : 'twitter로 회원가입';
   const buttonsDisabled = isLoginMode ? false : !canLogin; // 로그인 모드면 항상 활성
+
+  // ✅ 모달 크기/제목 표시 조건 (about만 살짝 작게, 제목 제거)
+  const modalWidth = openModal === 'about' ? 'min(520px, 92vw)' : 'min(720px, 92vw)';
+  const closeFontSize = 22; // X 버튼 살짝 키움
 
   return (
     <div className="home-container">
@@ -256,7 +264,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* 안내 문구: 가입 모드에서만 보여주고(로그인 모드에선 숨김), 공간도 차지 X */}
+        {/* 안내 문구: 가입 모드에서만 표시 */}
         {!isLoginMode && !canLogin && (
           <div
             style={{
@@ -298,10 +306,26 @@ export default function Home() {
           {twitterLabel}
         </button>
 
-        {/* 하단 작은 링크: 모드 토글 */}
+        {/* 하단 작은 링크: 모드 토글 (로그인 모드 진입 시 체크 자동 ✔️, 복귀 시 이전 상태 복원) */}
         <button
           type="button"
-          onClick={() => setIsLoginMode(v => !v)}
+          onClick={() => {
+            setIsLoginMode(prev => {
+              const next = !prev;
+              if (next) {
+                // 로그인 모드로 들어갈 때 현재 체크 상태 저장 후 자동 ✔️
+                prevAgreeInfoRef.current  = agreeInfo;
+                prevAgreeTermsRef.current = agreeTerms;
+                setAgreeInfo(true);
+                setAgreeTerms(true);
+              } else {
+                // 회원가입 모드로 돌아갈 때 이전 상태 복원
+                setAgreeInfo(prevAgreeInfoRef.current ?? false);
+                setAgreeTerms(prevAgreeTermsRef.current ?? false);
+              }
+              return next;
+            });
+          }}
           style={{
             marginTop: 6,
             background: 'none',
@@ -337,7 +361,7 @@ export default function Home() {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: 'min(720px, 92vw)',
+              width: modalWidth,                 // ← about일 땐 더 작게
               maxWidth: '720px',
               background: '#fff',
               borderRadius: 12,
@@ -348,6 +372,7 @@ export default function Home() {
               padding: '16px 16px 12px'
             }}
           >
+            {/* 닫기 X (크기 살짝 키움) */}
             <button
               aria-label="닫기"
               onClick={() => setOpenModal(null)}
@@ -357,23 +382,29 @@ export default function Home() {
                 right: 12,
                 border: 'none',
                 background: 'none',
-                fontSize: 18,
-                cursor: 'pointer'
+                fontSize: closeFontSize,  // ← 22px
+                cursor: 'pointer',
+                lineHeight: 1
               }}
             >
               ×
             </button>
 
-            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 10 }}>
-              {openModal === 'about' ? '트위나우TwiNow 안내' : '회원약관 안내'}
-            </div>
+            {/* 제목: terms만 표시, about은 제목 제거 */}
+            {openModal === 'terms' && (
+              <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 10 }}>
+                회원약관 안내
+              </div>
+            )}
 
+            {/* 본문: about은 높이를 auto로(최대 60vh), terms는 고정 60vh 스크롤 */}
             <div
               style={{
                 border: '1px solid #eee',
                 borderRadius: 8,
                 padding: 12,
-                height: '60vh',
+                height: openModal === 'about' ? 'auto' : '60vh', // ← about: 콘텐츠에 맞게
+                maxHeight: '60vh',
                 overflowY: 'auto',
                 whiteSpace: 'pre-wrap',
                 lineHeight: 1.5,

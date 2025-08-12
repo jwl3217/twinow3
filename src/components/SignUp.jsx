@@ -13,7 +13,8 @@ import {
   query,
   where,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
+  deleteDoc,
 } from 'firebase/firestore';
 import {
   onAuthStateChanged,
@@ -37,10 +38,19 @@ export default function SignUp() {
   const [age, setAge]               = useState('');
   const [region, setRegion]         = useState('');
   const [completed, setCompleted]   = useState(false);
-  const [invalidModal, setInvalidModal] = useState(false);
   const [imgModalOpen, setImgModalOpen] = useState(false);
 
-  // ✅ 추가: 회원가입 화면 진입 시 안내(브라우저 기본 모달)
+  // ✅ 추가: 확인(저장) 완료 여부를 동기적으로 보관하는 가드
+  const confirmedRef = useRef(false);
+
+  // 이 페이지에서는 하단 내비 숨김
+  useEffect(() => {
+    const nav = document.querySelector('.bottom-nav');
+    if (nav) nav.style.display = 'none';
+    return () => { if (nav) nav.style.display = ''; };
+  }, []);
+
+  // 회원가입 화면 진입 안내
   useEffect(() => {
     const key = 'signupNotice';
     const v = sessionStorage.getItem(key);
@@ -50,7 +60,7 @@ export default function SignUp() {
     }
   }, []);
 
-  // 1) 관리자 화면에서 이메일/비번 전달(prefill) 시: Auth 계정 생성 + Firestore 문서
+  // 관리자 프리필 생성 플로우
   useEffect(() => {
     if (prefillEmail && prefillPassword && !didPrefillRef.current) {
       didPrefillRef.current = true;
@@ -64,9 +74,8 @@ export default function SignUp() {
             gender:        '',
             age:           null,
             region:        '',
-            // ✅ 기본값: 남자 기본과 동일하게 100 코인
             coins:         100,
-            authProvider:  u.providerData[0].providerId, // 가입 프로바이더 저장
+            authProvider:  u.providerData[0].providerId,
             createdAt:     serverTimestamp()
           });
         })
@@ -78,7 +87,7 @@ export default function SignUp() {
     }
   }, [prefillEmail, prefillPassword, navigate]);
 
-  // 2) Auth 상태 감시 (prefill flow 제외)
+  // Auth 상태 감시
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async u => {
       if (prefillEmail && prefillPassword && !completed) {
@@ -114,14 +123,14 @@ export default function SignUp() {
     const trimmed = nickname.trim();
     const forbidden = ['알 수 없음','알수없음','알수 없음'];
     if (!trimmed || forbidden.some(t => trimmed.includes(t))) {
-      setInvalidModal(true);
+      alert('사용할 수 없는 닉네임입니다');
       return;
     }
     // 중복 닉네임 검사
     const q = query(collection(db, 'users'), where('nickname','==',trimmed));
     const snap = await getDocs(q);
     if (!snap.empty) {
-      setInvalidModal(true);
+      alert('사용할 수 없는 닉네임입니다');
       return;
     }
     try {
@@ -132,7 +141,6 @@ export default function SignUp() {
         finalPhotoURL = await getDownloadURL(storageRef);
       }
 
-      // ✅ 성별에 따라 코인 부여: 여자=5000, 그 외(남자 포함)=100
       const coinsToSet = (gender === 'female') ? 5000 : 100;
 
       await setDoc(doc(db, 'users', user.uid), {
@@ -144,10 +152,13 @@ export default function SignUp() {
         gender,
         age:           Number(age),
         region,
-        coins:         coinsToSet,     // ← 조건부 반영
-        authProvider:  'password',     // 이메일/비번 가입임을 명시
+        coins:         coinsToSet,
+        authProvider:  'password',
         createdAt:     serverTimestamp()
       });
+
+      // ✅ 여기서 즉시 확정 플래그를 올려 언마운트 정리 차단
+      confirmedRef.current = true;
       setCompleted(true);
       navigate('/feed', { replace: true });
     } catch (err) {
@@ -155,6 +166,41 @@ export default function SignUp() {
       alert('회원정보 저장 중 오류가 발생했습니다.');
     }
   };
+
+  // 미완료 시 계정/문서 정리
+  const purgeUnfinished = async () => {
+    try {
+      if (confirmedRef.current) return; // ✅ 확인 완료면 절대 정리하지 않음
+      const u = auth.currentUser;
+      if (!u) return;
+      try { await deleteDoc(doc(db, 'users', u.uid)); } catch {}
+      try {
+        await u.delete();
+      } catch {
+        try { await auth.signOut(); } catch {}
+      }
+    } catch {}
+  };
+
+  // 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      if (!confirmedRef.current) purgeUnfinished();
+    };
+  }, []);
+
+  // 탭/창 닫기 시도 시 정리
+  useEffect(() => {
+    const handler = () => {
+      if (!confirmedRef.current) purgeUnfinished();
+    };
+    window.addEventListener('pagehide', handler);
+    window.addEventListener('beforeunload', handler);
+    return () => {
+      window.removeEventListener('pagehide', handler);
+      window.removeEventListener('beforeunload', handler);
+    };
+  }, []);
 
   if (!user) return null;
 
@@ -170,9 +216,20 @@ export default function SignUp() {
           style={{ cursor: 'pointer' }}
           onClick={() => setImgModalOpen(true)}
         />
-        <button onClick={() => document.getElementById('fileInput').click()}>
-          프로필 사진 선택
-        </button>
+
+        {/* 버튼 아래 안내 문구(세로 배치) */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+          <button
+            onClick={() => document.getElementById('fileInput').click()}
+            style={{ alignSelf: 'center' }}
+          >
+            프로필 사진 선택
+          </button>
+          <span className="photo-hint" style={{ color: '#666', fontSize: 12 }}>
+            사진을 업로드하지 않을 경우 기본 프로필이 사용됩니다
+          </span>
+        </div>
+
         <input
           id="fileInput"
           type="file"
@@ -180,9 +237,6 @@ export default function SignUp() {
           onChange={handleFileChange}
           style={{ display: 'none' }}
         />
-        <p className="photo-hint">
-          사진을 선택하지 않으면 기본 프로필이 사용됩니다.
-        </p>
       </div>
 
       <div className="field">
@@ -226,7 +280,6 @@ export default function SignUp() {
         </select>
       </div>
 
-      {/* ✅ 약관 버튼/모달 제거, 확인 버튼만 남김 */}
       <button
         className="confirm-button"
         onClick={handleConfirm}
@@ -238,22 +291,6 @@ export default function SignUp() {
       >
         확인
       </button>
-
-      {invalidModal && (
-        <div className="terms-modal">
-          <div className="terms-content">
-            <p style={{ textAlign: 'center' }}>사용할 수 없는 닉네임입니다</p>
-            <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <button
-                className="terms-close-button"
-                onClick={() => setInvalidModal(false)}
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {imgModalOpen && (
         <ImageModal src={photoURL} onClose={() => setImgModalOpen(false)} />

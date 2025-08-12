@@ -16,6 +16,8 @@ import ImageModal                     from './ImageModal';
 import '../styles/feed.css';
 import searchIcon                     from '../assets/search-icon.png';
 import scrollTopIcon                  from '../assets/scroll-top.png';
+// ✅ 추가: 사용자 제공 PNG 아이콘 임포트 (파일명을 fab-write.png 로 저장)
+import fabWriteIcon                   from '../assets/fab-write.png';
 
 export default function Feed() {
   const navigate = useNavigate();
@@ -29,7 +31,7 @@ export default function Feed() {
   const [showTop, setShowTop]                   = useState(false);
   const currentUid = auth.currentUser?.uid;
 
-  // ✅ 추가: 피드 진입 시 브라우저 기본 모달 표시
+  // ✅ 피드 진입 시 브라우저 기본 모달 표시
   useEffect(() => {
     const key = 'loginNotice';
     const v = sessionStorage.getItem(key);
@@ -41,15 +43,14 @@ export default function Feed() {
 
   // ===== 가상 무한 스크롤(점진 렌더) 설정값 =====
   const APPROX_CARD_PX = 220;
-  const INITIAL_MULT = 2;   // ← 처음 로드 분량(화면 높이 x 3)
-  const CHUNK_MULT   = 2;   // ← 추가 로드 분량(화면 높이 x 2)
-  const PAGING_DELAY_MS = 500; // ← 추가 로드 딜레이(ms) 여기만 바꾸면 됨
+  const INITIAL_MULT = 2;
+  const CHUNK_MULT   = 2;
+  const PAGING_DELAY_MS = 500;
   const calcCount = (mult) => {
     const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
     return Math.max(10, Math.ceil((vh / APPROX_CARD_PX) * mult));
   };
   const [visibleCount, setVisibleCount] = useState(calcCount(INITIAL_MULT));
-  // 딜레이 제어용
   const pagingTimerRef = useRef(null);
   const isPagingRef    = useRef(false);
   // ============================================
@@ -89,7 +90,6 @@ export default function Feed() {
     })();
   }, [currentUid]);
 
-  // 스크롤 이벤트: 상단버튼 노출 + 하단 근접 시 추가 렌더(딜레이 포함)
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || document.documentElement.scrollTop;
@@ -98,7 +98,6 @@ export default function Feed() {
       const docEl = document.documentElement;
       const nearBottom = (window.innerHeight + y) >= (docEl.scrollHeight - 300);
       if (nearBottom && !isPagingRef.current) {
-        // 딜레이 시작
         isPagingRef.current = true;
         if (pagingTimerRef.current) clearTimeout(pagingTimerRef.current);
         pagingTimerRef.current = setTimeout(() => {
@@ -113,12 +112,10 @@ export default function Feed() {
       window.removeEventListener('scroll', onScroll);
       if (pagingTimerRef.current) clearTimeout(pagingTimerRef.current);
     };
-  }, []); // ← 상태 의존성 없이 타이머/플래그로 제어
+  }, []);
 
-  // 검색/성별 필터 변경 시 처음 개수로 리셋
   useEffect(() => {
     setVisibleCount(calcCount(INITIAL_MULT));
-    // 진행 중 타이머 초기화
     if (pagingTimerRef.current) clearTimeout(pagingTimerRef.current);
     isPagingRef.current = false;
   }, [selectedGender, searchText]);
@@ -145,7 +142,6 @@ export default function Feed() {
     return `${Math.floor(day / 365)}년 전`;
   };
 
-  // 필터링: 페르소나 모드면 post의 필드 사용
   const filtered = posts.filter(post => {
     const isPersona = post.personaMode === true;
     const u = users[post.uid] || {};
@@ -255,7 +251,8 @@ export default function Feed() {
         className="fab-button"
         onClick={() => navigate('/post/new')}
       >
-        <img src={require('../assets/plus-icon.png')} alt="글쓰기" />
+        {/* ✅ 기존 require(...) 대신 사용자 PNG로 교체 */}
+        <img src={fabWriteIcon} alt="글쓰기" />
       </div>
 
       {/* ▲ 맨 위로 버튼 */}
