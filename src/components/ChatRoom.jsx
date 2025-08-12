@@ -462,13 +462,17 @@ export default function ChatRoom() {
           </div>
         )}
 
-        {messages.length === 0 && (
+        {/* ✅ 지원 채팅 안내: 최초에만 */}
+        {messages.length === 0 && isSupportChat && (
           <div style={{ textAlign: 'center', fontSize: 12, color: '#666', margin: '12px 0' }}>
-            {isSupportChat
-              ? '관리자와의 채팅이 시작되었습니다'
-              : '채팅 정보는 암호화되어 보관되며, 관리자가 확인할 수 없습니다.'}
+            관리자와의 채팅이 시작되었습니다
           </div>
         )}
+
+        {/* ✅ 암호화 안내: 항상 표시 (사라지지 않음) */}
+        <div style={{ textAlign: 'center', fontSize: 12, color: '#666', margin: '8px 0' }}>
+          채팅 정보는 암호화되어 보관되며, 관리자가 확인할 수 없습니다.
+        </div>
 
         {messages.map(msg => (
           <div

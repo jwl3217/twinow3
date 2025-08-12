@@ -170,7 +170,7 @@ export default function PostCreate() {
                 <textarea
                   className="create-json"
                   rows={18}                              // ⬅️ 크기 확대(세로 줄 수)
-                  style={{ minHeight: 320 }}            // ⬅️ 최소 높이 보강
+                  style={{ minHeight: 320, fontSize: 16  }}            // ⬅️ 최소 높이 보강
                   placeholder={`{
   "persona": {
     "nickname": "초록달팽이",
