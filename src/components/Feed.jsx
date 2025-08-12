@@ -132,7 +132,8 @@ export default function Feed() {
     if (!ts?.toMillis) return '';
     const diff = Date.now() - ts.toMillis();
     const sec  = Math.floor(diff / 1000);
-    if (sec < 60) return `${sec}초 전`;
+    // ⬇️ 60초 미만은 '방금'으로 표시
+    if (sec < 60) return '방금';
     const min = Math.floor(sec / 60);
     if (min < 60) return `${min}분 전`;
     const hr  = Math.floor(min / 60);

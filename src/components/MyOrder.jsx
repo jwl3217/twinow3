@@ -117,12 +117,13 @@ export default function MyOrder() {
         return nav(`/chat/${exist.id}`);
       }
 
-      // 없으면 새로 생성
+      // 없으면 새로 생성 (✅ isSupport 플래그 추가)
       const newRoom = await addDoc(collection(db, 'chatRooms'), {
         members: [me, ADMIN_UID],
         lastMessage: '고객지원 채팅을 시작했습니다.',
         lastAt: serverTimestamp(),
-        unread: { [me]: 0, [ADMIN_UID]: 1 }
+        unread: { [me]: 0, [ADMIN_UID]: 1 },
+        isSupport: true
       });
       nav(`/chat/${newRoom.id}`);
     } catch (e) {
@@ -164,8 +165,6 @@ export default function MyOrder() {
           <p className="mo-text">
             입금 후 24시간 이내에 코인 <b>{order.coins.toLocaleString()}개</b>가 충전됩니다.
           </p>
-
-          {/* 카드 안 상태표시는 제거(헤더로 이동) */}
 
           <button
             className="mo-cancel-btn"

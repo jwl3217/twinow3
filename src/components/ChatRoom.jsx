@@ -1,5 +1,4 @@
-// 경로: src/components/ChatRoom.jsx
-
+// src/components/ChatRoom.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate }            from 'react-router-dom';
 import { auth, db }                          from '../firebaseConfig';
@@ -295,7 +294,8 @@ export default function ChatRoom() {
     if (!ts?.toMillis) return '';
     const diff = Date.now() - ts.toMillis();
     const sec  = Math.floor(diff / 1000);
-    if (sec < 60) return `${sec}초 전`;
+    // ⬇️ 60초 미만은 '0분 전'로 고정
+    if (sec < 60) return `0분 전`;
     const min = Math.floor(sec / 60);
     if (min < 60) return `${min}분 전`;
     const hr  = Math.floor(min / 60);
@@ -399,6 +399,11 @@ export default function ChatRoom() {
 
   if (!room) return null;
 
+  // ✅ 고객지원 채팅 여부 판단(플래그 우선, 없으면 관리자와의 1:1로 추정)
+  const isSupportChat =
+    room?.isSupport === true ||
+    ((room?.members || []).includes(ADMIN_UID) && room?.personaMode !== true);
+
   return (
     <div className="chatroom-container">
       <header className="chatroom-header">
@@ -459,7 +464,9 @@ export default function ChatRoom() {
 
         {messages.length === 0 && (
           <div style={{ textAlign: 'center', fontSize: 12, color: '#666', margin: '12px 0' }}>
-            채팅 정보는 암호화되어 보관되며, 관리자가 확인할 수 없습니다.
+            {isSupportChat
+              ? '관리자와의 채팅이 시작되었습니다'
+              : '채팅 정보는 암호화되어 보관되며, 관리자가 확인할 수 없습니다.'}
           </div>
         )}
 
