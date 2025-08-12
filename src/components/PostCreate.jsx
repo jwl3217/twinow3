@@ -1,4 +1,5 @@
 // 경로: src/components/PostCreate.jsx
+
 import React, { useMemo, useState } from 'react';
 import { useNavigate }                 from 'react-router-dom';
 import { auth, db, storage }          from '../firebaseConfig';
@@ -6,7 +7,11 @@ import {
   collection,
   addDoc,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  query,            // ★ 추가: 닉네임 중복 검사
+  where,            // ★ 추가
+  getDocs,          // ★ 추가
+  limit,            // ★ 추가
 } from 'firebase/firestore';
 import {
   ref as storageRef,
@@ -77,6 +82,35 @@ export default function PostCreate() {
         const fromJson = parsePersonaJSON();
         if (!fromJson) return;
 
+        // ★ 닉네임 충돌 방지: users / persona posts 중복 검사
+        const nicknameTrimmed = String(fromJson.persona?.nickname || '').trim();
+        if (!nicknameTrimmed) {
+          alert('사용할 수 없는 닉네임입니다.');
+          return;
+        }
+
+        // 1) users 컬렉션에 동일 닉네임 존재?
+        const userDupSnap = await getDocs(
+          query(collection(db, 'users'), where('nickname', '==', nicknameTrimmed), limit(1))
+        );
+        if (!userDupSnap.empty) {
+          alert('사용할 수 없는 닉네임입니다.');
+          return;
+        }
+
+        // 2) posts 컬렉션(페르소나 전용)에서 동일 닉네임 존재?
+        //    인덱스 회피를 위해 nickname== 로만 가져오고 personaMode 확인
+        const personaNickSnap = await getDocs(
+          query(collection(db, 'posts'), where('nickname', '==', nicknameTrimmed), limit(3))
+        );
+        const personaNickExists = personaNickSnap.docs.some(
+          d => d.data()?.personaMode === true
+        );
+        if (personaNickExists) {
+          alert('사용할 수 없는 닉네임입니다.');
+          return;
+        }
+
         // 사진 업로드(선택). 없으면 기본 프로필 사용
         let finalPhotoURL = defaultProfile; // ★ 기본 프로필을 기본값으로
         if (photoFile) {
@@ -89,12 +123,12 @@ export default function PostCreate() {
         const p = fromJson.persona;
         payload = {
           uid:        ADMIN_UID,
-          photoURL:   finalPhotoURL,                           // 업로드 or 기본 프로필
-          nickname:   p.nickname,
+          photoURL:   finalPhotoURL,
+          nickname:   nicknameTrimmed,                         // ★ 트리밍 적용
           gender:     p.gender,
           age:        Number(p.age) || null,
           region:     p.region,
-          content:    String(fromJson.content || '').trim(),   // JSON content
+          content:    String(fromJson.content || '').trim(),
           createdAt:  toTimestamp(fromJson.postedAt) || serverTimestamp(),
           personaMode: true
         };
@@ -169,18 +203,9 @@ export default function PostCreate() {
                 <label>페르소나 JSON 붙여넣기(필수)</label>
                 <textarea
                   className="create-json"
-                  rows={18}                              // ⬅️ 크기 확대(세로 줄 수)
-                  style={{ minHeight: 320, fontSize: 16  }}            // ⬅️ 최소 높이 보강
-                  placeholder={`{
-  "persona": {
-    "nickname": "초록달팽이",
-    "gender": "female",
-    "age": 25,
-    "region": "서울"
-  },
-  "content": "새해 첫날이라 기분 전환 겸 새벽 러닝을 했어요...",
-  "postedAt": "2024-01-01T07:15:00+09:00"
-}`}
+                  rows={18}
+                  style={{ minHeight: 320, fontSize: 16 }}  // ★ 글자 크기 16px 유지
+                  placeholder={'여기에 페르소나 입력'}
                   value={personaJSON}
                   onChange={e => setPersonaJSON(e.target.value)}
                 />

@@ -15,6 +15,7 @@ import {
   getDocs,
   serverTimestamp,
   deleteDoc,
+  limit,                 // ★ 추가: 중복 검사 최적화를 위한 limit
 } from 'firebase/firestore';
 import {
   onAuthStateChanged,
@@ -123,16 +124,32 @@ export default function SignUp() {
     const trimmed = nickname.trim();
     const forbidden = ['알 수 없음','알수없음','알수 없음'];
     if (!trimmed || forbidden.some(t => trimmed.includes(t))) {
-      alert('사용할 수 없는 닉네임입니다');
+      alert('사용할 수 없는 닉네임입니다.');
       return;
     }
-    // 중복 닉네임 검사
-    const q = query(collection(db, 'users'), where('nickname','==',trimmed));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      alert('사용할 수 없는 닉네임입니다');
+
+    // ★ 닉네임 중복 검사 1: users 컬렉션
+    const userDupSnap = await getDocs(
+      query(collection(db, 'users'), where('nickname', '==', trimmed), limit(1))
+    );
+    if (!userDupSnap.empty) {
+      alert('사용할 수 없는 닉네임입니다.');
       return;
     }
+
+    // ★ 닉네임 중복 검사 2: posts 컬렉션(페르소나 전용)
+    //   - 복합 where(==,==)는 인덱스 필요할 수 있어, nickname== 로만 가져와 personaMode 체크
+    const personaNickSnap = await getDocs(
+      query(collection(db, 'posts'), where('nickname', '==', trimmed), limit(3))
+    );
+    const personaNickExists = personaNickSnap.docs.some(
+      d => d.data()?.personaMode === true
+    );
+    if (personaNickExists) {
+      alert('사용할 수 없는 닉네임입니다.');
+      return;
+    }
+
     try {
       let finalPhotoURL = photoURL;
       if (photoFile) {
