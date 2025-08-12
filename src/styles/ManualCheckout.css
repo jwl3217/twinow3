@@ -80,7 +80,8 @@
   flex-direction: column;
 }
 
-.checkout-text { margin: 0 0 8px; line-height: 1.5;
+.checkout-text {
+margin: 0 0 8px; line-height: 1.5;
  text-align: center; }
 
 .checkout-field {
@@ -93,6 +94,7 @@
 .checkout-field input {
   padding: 10px;
   border: 1px solid #ddd; border-radius: 8px;
+  font-size:16px;
   background: #fff; outline: none;
 }
 
