@@ -25,7 +25,7 @@ import ImageModal                             from './ImageModal';
 import '../styles/SignUp.css';
 
 // ★ [코인] 기본 지급량(남/여 동일). 숫자만 바꾸면 전체 기본 코인 변경됩니다.
-const DEFAULT_COINS = 2000;
+const DEFAULT_COINS = 500;
 
 export default function SignUp() {
   const navigate  = useNavigate();
