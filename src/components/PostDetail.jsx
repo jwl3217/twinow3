@@ -9,12 +9,6 @@ import {
   updateDoc,
   arrayUnion,
   arrayRemove,
-  serverTimestamp,
-  query,
-  collection,
-  where,
-  getDocs,
-  setDoc
 } from 'firebase/firestore';
 import defaultProfile      from '../assets/default-profile.png';
 import backArrow           from '../assets/back-arrow.png';
@@ -24,9 +18,6 @@ import visibleIcon         from '../assets/eye-visible.png';
 import ImageModal          from './ImageModal';
 import '../styles/PostDetail.css';
 import '../styles/feed.css';
-
-const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03'; // ★ 관리자 UID
-const CF_OPEN_URL = 'https://us-central1-twinow3-app.cloudfunctions.net/openPersonaChat'; // ★ 추가: 서버에서 페르소나 방 생성/재사용
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -65,27 +56,22 @@ export default function PostDetail() {
 
   if (!post || !writer) return null;
 
-  // ====== 페르소나 모드일 때는 post의 필드 우선 사용 ======
-  const usePersona = post.personaMode === true;
-
+  // ====== 표시용 필드(페르소나 표식 없이 동작) ======
   const iBlockedThem  = blockedUsers.includes(post.uid);
   const theyBlockedMe = writer.blockedUsers?.includes(me);
   const shouldMask    = iBlockedThem && !showHidden;
 
-  const displayName  = usePersona ? (post.nickname || '알 수 없음') : writer.nickname;
-  const displayPhoto = shouldMask
-    ? defaultProfile
-    : (usePersona ? (post.photoURL || defaultProfile) : (writer.photoURL || defaultProfile));
+  const displayName  = writer.nickname || '알 수 없음';
+  const displayPhoto = shouldMask ? defaultProfile : (writer.photoURL || defaultProfile);
 
-  const dispAge    = usePersona ? post.age    : writer.age;
-  const dispGender = usePersona ? post.gender : writer.gender;
-  const dispRegion = usePersona ? post.region : writer.region;
+  const dispAge    = writer.age;
+  const dispGender = writer.gender;
+  const dispRegion = writer.region;
 
   const timeAgo = ts => {
     if (!ts?.toMillis) return '';
     const diff = Date.now() - ts.toMillis();
     const sec  = Math.floor(diff / 1000);
-    // ⬇️ 60초 미만은 '방금'으로 표시
     if (sec < 60) return '방금';
     const min  = Math.floor(sec / 60);
     if (min < 60) return `${min}분 전`;
@@ -121,18 +107,14 @@ export default function PostDetail() {
     setMenuOpen(false);
   };
 
-  // ★ 제목/요약 유틸(채팅방 상단 카드용)
-  const deriveTitle = (text = '') => {
-    const oneline = String(text).split('\n')[0].trim();
-    return oneline.length > 20 ? oneline.slice(0, 20) + '…' : oneline || '게시글';
-  };
-  const deriveExcerpt = (text = '') => {
-    const one = text.replace(/\s+/g, ' ').trim();
-    const limit = 60;
-    return one.length > limit ? one.slice(0, limit) + ' …더보기' : one;
-  };
+  // ====== 서버 위임: 방 개설(일반/페르소나 모두) ======
+  const OPEN_CHAT_URLS = [
+    // 새 이름(권장)
+    'https://us-central1-twinow3-app.cloudfunctions.net/openChat',
+    // 구 이름(배포 과도기 호환)
+    'https://us-central1-twinow3-app.cloudfunctions.net/openPersonaChat'
+  ];
 
-  // ★ 글 기준 채팅방 생성/접속
   const handleChat = async () => {
     const user = auth.currentUser;
     if (!user) {
@@ -144,77 +126,49 @@ export default function PostDetail() {
       return;
     }
 
-    const myUid = user.uid;
+    try {
+      const token = await user.getIdToken();
+      let roomId = null;
+      let lastErr = null;
 
-    if (post.personaMode === true) {
-      // ① 기존 방이 있으면 재사용
-      const roomsCol = collection(db, 'chatRooms');
-      const qRooms   = query(
-        roomsCol,
-        where('members', 'array-contains', myUid),
-        where('personaPostId', '==', id)
-      );
-      const existSnap = await getDocs(qRooms);
-      if (!existSnap.empty) {
-        return navigate(`/chat/${existSnap.docs[0].id}`);
-      }
-
-      // ② 없으면 서버에 생성/재사용 요청(클라이언트는 직접 쓰지 않음)
-      try {
-        const token = await user.getIdToken();
-        const resp  = await fetch(CF_OPEN_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ postId: id })
-        });
-        const data = await resp.json();
-        if (resp.ok && data?.ok && data.roomId) {
-          return navigate(`/chat/${data.roomId}`);
+      for (const url of OPEN_CHAT_URLS) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              postId: id
+              // 서버가 postId를 기준으로 상대 UID, 카테고리, 인덱스 생성, participants 생성 등을 모두 처리
+            })
+          });
+          if (!res.ok) {
+            lastErr = new Error(`${res.status} ${res.statusText}`);
+            continue;
+          }
+          const data = await res.json();
+          if (data?.ok && data?.roomId) {
+            roomId = data.roomId;
+            break;
+          }
+          lastErr = new Error(data?.message || 'unknown_error');
+        } catch (e) {
+          lastErr = e;
         }
-      } catch (e) {
-        console.error('openPersonaChat error:', e);
       }
+
+      if (!roomId) {
+        console.error('openChat error:', lastErr);
+        alert('채팅방을 여는 중 오류가 발생했습니다.');
+        return;
+      }
+      navigate(`/chat/${roomId}`);
+    } catch (e) {
+      console.error('openChat unexpected error:', e);
       alert('채팅방을 여는 중 오류가 발생했습니다.');
-      return;
     }
-
-    // (일반 글) 기존 1:1 방 있으면 재사용 + 카드 메타 업서트
-    const otherUid2 = post.uid;
-    const members2  = [myUid, otherUid2].sort();
-
-    const roomsCol2 = collection(db, 'chatRooms');
-    const q2        = query(roomsCol2, where('members', 'array-contains', myUid));
-    const snap2     = await getDocs(q2);
-    const exist2    = snap2.docs.find(d => d.data().members.includes(otherUid2));
-
-    if (exist2) {
-      // ★ 기존 방에 카드 메타만 주입 (상단 카드 1개 노출용)
-      const exRef = doc(roomsCol2, exist2.id);
-      await updateDoc(exRef, {
-        personaPostId: id,
-        personaTitle:  deriveTitle(post.content || '')
-        // (excerpt는 ChatRoom에서 사용하지 않으니 생략)
-      }).catch(() => {});
-      return navigate(`/chat/${exist2.id}`);
-    }
-
-    // ★ 새 방 생성 시에도 카드 메타 포함
-    const newRef2 = doc(roomsCol2);
-    await setDoc(newRef2, {
-      members: members2,
-      lastMessage: '',
-      lastAt:      serverTimestamp(),
-      unlocked:    { [myUid]: false, [otherUid2]: false },
-      coins:       { [myUid]: 0,     [otherUid2]: 0 },
-
-      // 카드 메타(일반 글)
-      personaPostId: id,
-      personaTitle:  deriveTitle(post.content || '')
-    });
-    navigate(`/chat/${newRef2.id}`);
   };
 
   const genderLabel =
@@ -251,7 +205,7 @@ export default function PostDetail() {
               )}
             </div>
 
-            {/* 차단상태만 제외하고 항상 노출 (관리자 페르소나/일반 모두 지원) */}
+            {/* 차단상태만 제외하고 항상 노출 */}
             {!(iBlockedThem || theyBlockedMe) && (
               <button className="chat-button" onClick={handleChat}>
                 1:1 채팅

@@ -1,3 +1,4 @@
+// src/components/MessageList.jsx
 import React, { useState, useEffect } from 'react';
 import backArrow from '../assets/back-arrow.png';
 import { useNavigate } from 'react-router-dom';
@@ -15,9 +16,6 @@ import {
 } from 'firebase/firestore';
 import defaultProfile from '../assets/default-profile.png';
 import '../styles/MessageList.css';
-
-// ✅ 최소 수정: 환경변수 우선 사용
-const ADMIN_UID = process.env.REACT_APP_ADMIN_UID || 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
 
 // ===== E2EE helpers (채팅방 미리보기 복호화용) =====
 const KEYPAIR_STORAGE = 'e2ee:keypair:v1';
@@ -75,12 +73,25 @@ export default function MessageList() {
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid;
 
+  // ★ 토큰 클레임 기반 admin 여부
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const u = auth.currentUser;
+        if (!u) return;
+        const { claims } = await u.getIdTokenResult();
+        setIsAdminUser(!!claims.admin);
+      } catch {}
+    })();
+  }, []);
+
   const [rooms, setRooms] = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [leaveId, setLeaveId] = useState(null);
 
-  const isAdmin = uid === ADMIN_UID;
+  const isAdmin = isAdminUser;
 
   useEffect(() => {
     if (!uid) return;
@@ -96,7 +107,7 @@ export default function MessageList() {
       where('members', 'array-contains', uid)
     );
     const unsub = onSnapshot(qRooms, async snap => {
-      const { privateKey } = await getOrCreateMyKeypair(uid); // 내 키 확보(없으면 생성)
+      const { privateKey } = await getOrCreateMyKeypair(uid);
       const fetched = await Promise.all(
         snap.docs.map(async d => {
           const room = { id: d.id, ...d.data() };
@@ -155,7 +166,6 @@ export default function MessageList() {
         })
       );
 
-      // 대화가 없는 방(lastAt 없음)은 ghostHoldBy가 나(uid)인 경우에만 노출
       const filtered = fetched.filter(r => {
         const hasActivity = !!(r.lastAt?.toMillis?.() && r.lastAt.toMillis() > 0);
         const isMineGhost = r.ghostHoldBy === uid;
@@ -216,7 +226,7 @@ export default function MessageList() {
           <div className="room-text">
             <div className="room-header">
               <span className="room-nick">{room.nickname}</span>
-              {uid === ADMIN_UID && room.personaMode && room.personaPostId && (
+              {isAdmin && room.personaMode && room.personaPostId && (
                 <button
                   onClick={(e) => { e.stopPropagation(); navigate(`/post/${room.personaPostId}`); }}
                   style={{

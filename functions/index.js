@@ -86,7 +86,7 @@ export const queueAuthDeletion = onRequest({ region: 'us-central1' }, async (req
       return res.status(403).json({ error: 'forbidden' });
     }
 
-    const hours = Number.isFinite(afterHours) ? Math.max(1, Number(afterHours)) : 24; // ★ 24h
+    const hours = Number.isFinite(afterHours) ? Math.max(1, Number(afterHours)) : 24;
     const whenAt = Date.now() + hours * 60 * 60 * 1000;
 
     await db.collection('scheduledAuthDelete').doc(targetUid).set({
@@ -140,9 +140,122 @@ export const cronDeleteAuthUsers = onSchedule(
 );
 
 // ─────────────────────────────────────────────────────────────
-// ★ 페르소나 채팅방 열기(생성/재사용) + CORS 처리
-//   POST /openPersonaChat  { postId: string }
-//   헤더: Authorization: Bearer <idToken>
+// ★ 일반/페르소나 모두 처리: POST /openChat { postId }
+// ─────────────────────────────────────────────────────────────
+export const openChat = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST')    return res.status(405).json({ error: 'method_not_allowed' });
+
+  try {
+    const authHeader = req.headers.authorization || '';
+    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!idToken) return res.status(401).json({ error: 'unauthenticated' });
+
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    const uid = decoded.uid;
+
+    const { postId } = req.body || {};
+    if (!postId) return res.status(400).json({ error: 'missing_postId' });
+
+    // 게시글 로드
+    const pSnap = await db.collection('posts').doc(postId).get();
+    if (!pSnap.exists) return res.status(404).json({ error: 'post_not_found' });
+    const pData = pSnap.data() || {};
+
+    const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
+    const titleFrom = (txt = '') => {
+      const oneline = String(txt).split('\n')[0].trim();
+      return oneline.length > 20 ? oneline.slice(0, 20) + '…' : oneline || '게시글';
+    };
+
+    // ── 페르소나 글
+    if (pData.personaMode === true) {
+      // 기존 방 재사용
+      const exist = await db.collection('chatRooms')
+        .where('members', 'array-contains', uid)
+        .where('personaPostId', '==', postId)
+        .limit(1)
+        .get();
+
+      if (!exist.empty) {
+        return res.status(200).json({ ok: true, roomId: exist.docs[0].id });
+      }
+
+      // 신규 생성 (★ adminUid 함께 기록)
+      const ref = db.collection('chatRooms').doc();
+      await ref.set({
+        members: [uid, ADMIN_UID].sort(),
+        lastMessage: '',
+        lastAt: admin.firestore.FieldValue.serverTimestamp(),
+        unlocked:    { [uid]: false, [ADMIN_UID]: false },
+        coins:       { [uid]: 0,     [ADMIN_UID]: 0 },
+
+        adminUid: ADMIN_UID, // ★ 추가
+
+        personaMode:     true,
+        personaPostId:   postId,
+        personaNickname: pData.nickname || '관리자',
+        personaPhotoURL: pData.photoURL || '',
+        personaTitle:    titleFrom(pData.content || ''),
+        personaExcerpt:  ''
+      });
+
+      return res.status(200).json({ ok: true, roomId: ref.id });
+    }
+
+    // ── 일반 글
+    const otherUid = pData.uid;
+    if (!otherUid || otherUid === uid) {
+      return res.status(400).json({ error: 'invalid_post_owner' });
+    }
+
+    // 내가 속한 방 중 상대가 멤버인 1:1 방이 있으면 재사용
+    const myRooms = await db.collection('chatRooms')
+      .where('members', 'array-contains', uid)
+      .limit(50)
+      .get();
+
+    let found = null;
+    for (const d of myRooms.docs) {
+      const data = d.data() || {};
+      if (Array.isArray(data.members) && data.members.includes(otherUid) && data.personaMode !== true) {
+        found = d;
+        break;
+      }
+    }
+
+    if (found) {
+      await found.ref.set({
+        personaPostId: postId,
+        personaTitle:  titleFrom(pData.content || '')
+      }, { merge: true });
+      return res.status(200).json({ ok: true, roomId: found.id });
+    }
+
+    // 신규 생성(일반)
+    const ref = db.collection('chatRooms').doc();
+    await ref.set({
+      members: [uid, otherUid].sort(),
+      lastMessage: '',
+      lastAt: admin.firestore.FieldValue.serverTimestamp(),
+      unlocked:    { [uid]: false, [otherUid]: false },
+      coins:       { [uid]: 0,     [otherUid]: 0 },
+
+      // 상단 카드 메타
+      personaPostId: postId,
+      personaTitle:  titleFrom(pData.content || '')
+    });
+
+    return res.status(200).json({ ok: true, roomId: ref.id });
+  } catch (e) {
+    logger.error(e);
+    return res.status(500).json({ error: 'internal', message: e.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// ★ 기존 호환용: 페르소나 전용(이전 프런트 폴백 목적)
 // ─────────────────────────────────────────────────────────────
 export const openPersonaChat = onRequest({ region: 'us-central1' }, async (req, res) => {
   setCors(req, res);
@@ -160,7 +273,6 @@ export const openPersonaChat = onRequest({ region: 'us-central1' }, async (req, 
     const { postId } = req.body || {};
     if (!postId) return res.status(400).json({ error: 'missing_postId' });
 
-    // 게시글 확인
     const pDoc = await db.collection('posts').doc(postId).get();
     if (!pDoc.exists) return res.status(404).json({ error: 'post_not_found' });
     const pData = pDoc.data() || {};
@@ -170,8 +282,11 @@ export const openPersonaChat = onRequest({ region: 'us-central1' }, async (req, 
     }
 
     const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
+    const titleFrom = (txt = '') => {
+      const oneline = String(txt).split('\n')[0].trim();
+      return oneline.length > 20 ? oneline.slice(0, 20) + '…' : oneline || '게시글';
+    };
 
-    // 이미 있는 방 재사용
     const existSnap = await db.collection('chatRooms')
       .where('members', 'array-contains', uid)
       .where('personaPostId', '==', postId)
@@ -182,11 +297,6 @@ export const openPersonaChat = onRequest({ region: 'us-central1' }, async (req, 
       return res.status(200).json({ ok: true, roomId: existSnap.docs[0].id });
     }
 
-    // 새 방 생성
-    const titleFrom = (txt = '') => {
-      const oneline = String(txt).split('\n')[0].trim();
-      return oneline.length > 20 ? oneline.slice(0, 20) + '…' : oneline || '게시글';
-    };
     const newRef = db.collection('chatRooms').doc();
     await newRef.set({
       members: [uid, ADMIN_UID].sort(),
@@ -195,13 +305,14 @@ export const openPersonaChat = onRequest({ region: 'us-central1' }, async (req, 
       unlocked:    { [uid]: false, [ADMIN_UID]: false },
       coins:       { [uid]: 0,     [ADMIN_UID]: 0 },
 
-      // 페르소나 전용 메타
+      adminUid: ADMIN_UID, // ★ 추가
+
       personaMode:     true,
       personaPostId:   postId,
       personaNickname: pData.nickname || '관리자',
       personaPhotoURL: pData.photoURL || '',
       personaTitle:    titleFrom(pData.content || ''),
-      personaExcerpt:  '' // 클라이언트에서 미사용
+      personaExcerpt:  ''
     });
 
     return res.status(200).json({ ok: true, roomId: newRef.id });

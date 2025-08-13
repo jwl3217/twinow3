@@ -1,3 +1,4 @@
+// src/components/ChatRoom.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate }            from 'react-router-dom';
 import { auth, db }                          from '../firebaseConfig';
@@ -23,9 +24,6 @@ import sendIcon       from '../assets/send-icon.png';
 import CoinModal      from './CoinModal';
 import ImageModal     from './ImageModal';
 import '../styles/ChatRoom.css';
-
-// ✅ 최소 수정: 환경변수 우선 사용(없으면 기존 값 사용)
-const ADMIN_UID = process.env.REACT_APP_ADMIN_UID || 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
 
 // ===== E2EE helpers (최소 추가) =====
 const KEYPAIR_STORAGE = 'e2ee:keypair:v1';
@@ -131,6 +129,19 @@ export default function ChatRoom() {
   const navigate  = useNavigate();
   const me        = auth.currentUser?.uid;
 
+  // ★ 토큰 클레임 기반 admin 여부
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const u = auth.currentUser;
+        if (!u) return;
+        const { claims } = await u.getIdTokenResult();
+        setIsAdminUser(!!claims.admin);
+      } catch {}
+    })();
+  }, []);
+
   useEffect(() => {
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
@@ -218,7 +229,6 @@ export default function ChatRoom() {
         aesKeyRef.current = null;
       }
 
-      // ⬇️ posts_public이 아닌 기존 posts로 복원 + 보호
       if (data.personaPostId) {
         try {
           const p = await getDoc(doc(db, 'posts', data.personaPostId));
@@ -279,16 +289,20 @@ export default function ChatRoom() {
   const cannotSend    = iBlockedThem || theyBlockedMe || otherLeft || unknownDel;
 
   const personaMode = room?.personaMode === true;
-  const isAdmin     = me === ADMIN_UID;
+
+  // ★ 서버가 내려준 adminUid 우선, 없으면 안전 폴백
+  const adminUid = room?.adminUid || null;
+  const effectiveAdminUid =
+    adminUid || (personaMode ? (isAdminUser ? me : otherUid) : null);
 
   const avatarSrc = personaMode
-    ? (isAdmin
+    ? (isAdminUser
         ? (cannotSend ? defaultProfile : otherUser.photoURL || defaultProfile)
         : (room?.personaPhotoURL || defaultProfile))
     : (cannotSend ? defaultProfile : otherUser.photoURL || defaultProfile);
 
   const displayName = personaMode
-    ? (isAdmin
+    ? (isAdminUser
         ? ((otherLeft || unknownDel) ? '알 수 없음' : otherUser.nickname)
         : (room?.personaNickname || '관리자'))
     : ((otherLeft || unknownDel) ? '알 수 없음' : otherUser.nickname);
@@ -319,7 +333,7 @@ export default function ChatRoom() {
           sentAt: serverTimestamp()
         });
         setInput('');
-        const targetUid = personaMode ? (isAdmin ? otherUid : ADMIN_UID) : otherUid;
+        const targetUid = personaMode ? (isAdminUser ? otherUid : effectiveAdminUid) : otherUid;
         await updateDoc(doc(db, 'chatRooms', roomId), {
           lastMessage: '',
           lastMessageCipher: { v: 1, iv, ct },
@@ -336,7 +350,7 @@ export default function ChatRoom() {
       sentAt: serverTimestamp()
     });
     setInput('');
-    const targetUid = personaMode ? (isAdmin ? otherUid : ADMIN_UID) : otherUid;
+    const targetUid = personaMode ? (isAdminUser ? otherUid : effectiveAdminUid) : otherUid;
     await updateDoc(doc(db, 'chatRooms', roomId), {
       lastMessage: txt,
       lastAt:      serverTimestamp(),
@@ -403,7 +417,7 @@ export default function ChatRoom() {
 
   const isSupportChat =
     room?.isSupport === true ||
-    ((room?.members || []).includes(ADMIN_UID) && room?.personaMode !== true);
+    (!!effectiveAdminUid && (room?.members || []).includes(effectiveAdminUid) && room?.personaMode !== true);
 
   return (
     <div className="chatroom-container">

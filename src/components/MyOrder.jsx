@@ -29,17 +29,20 @@ export default function MyOrder() {
   const [askCancel, setAskCancel] = useState(false);
   const [faqOpen, setFaqOpen] = useState(false);   // FAQ 토글
 
-  // ✅ 추가: 인증 준비 플래그 (인증 후에만 스냅샷 구독)
+  // ✅ 인증 준비 플래그 (인증 후에만 스냅샷 구독)
   const [authReady, setAuthReady] = useState(false);
 
   // 내가 직접 취소했는지 여부(스냅샷에서 "주문을 찾을 수 없습니다" 경고 방지)
   const canceledByMeRef = useRef(false);
 
+  // ✅ 추가: listener 해제를 위해 unsubscribe 보관
+  const unsubRef = useRef(null);
+
   // 로그인 체크
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       if (!u) return nav('/', { replace: true });
-      setAuthReady(true); // ✅ 인증 완료
+      setAuthReady(true);
     });
     return () => unsubAuth();
   }, [nav]);
@@ -47,33 +50,55 @@ export default function MyOrder() {
   // 주문 구독
   useEffect(() => {
     if (!id) return nav('/shop', { replace: true });
-    if (!authReady) return; // ✅ 인증 준비 전에는 구독하지 않음
+    if (!authReady) return;
 
     const ref = doc(db, 'order', id);
-    const unsub = onSnapshot(ref, (snap) => {
-      if (!snap.exists()) {
-        if (canceledByMeRef.current) {
-          canceledByMeRef.current = false;
-          return;
+
+    // ✅ 에러 콜백 추가 + ref에 담아 언제든 해제 가능
+    unsubRef.current = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) {
+          if (canceledByMeRef.current) {
+            canceledByMeRef.current = false;
+            return;
+          }
+          alert('주문을 찾을 수 없습니다.');
+          return nav('/shop', { replace: true });
         }
-        alert('주문을 찾을 수 없습니다.');
-        return nav('/shop', { replace: true });
+        const d = snap.data();
+        const u = auth.currentUser;
+        if (!u || d.uid !== u.uid) {
+          alert('접근 권한이 없습니다.');
+          return nav('/shop', { replace: true });
+        }
+        setOrder({ id: snap.id, ...d });
+      },
+      (err) => {
+        console.error('order listener error:', err);
+        // 권한 오류 시에도 사용자 경험 보호: 목록으로 이동
+        nav('/shop', { replace: true });
       }
-      const d = snap.data();
-      const u = auth.currentUser;
-      if (!u || d.uid !== u.uid) {
-        alert('접근 권한이 없습니다.');
-        return nav('/shop', { replace: true });
+    );
+
+    return () => {
+      if (unsubRef.current) {
+        unsubRef.current();
+        unsubRef.current = null;
       }
-      setOrder({ id: snap.id, ...d });
-    });
-    return () => unsub();
-  }, [id, nav, authReady]); // ✅ authReady 의존성 추가
+    };
+  }, [id, nav, authReady]);
 
   // 주문 취소: order/<id> → canceledorder/<id> + canceledAt
   const cancelOrder = async () => {
     if (!order) return;
     try {
+      // ✅ 삭제 전에 구독 해제하여 permission-denied 방지
+      if (unsubRef.current) {
+        unsubRef.current();
+        unsubRef.current = null;
+      }
+
       canceledByMeRef.current = true;
       const orderRef = doc(db, 'order', order.id);
       const snap = await getDoc(orderRef);
@@ -101,6 +126,7 @@ export default function MyOrder() {
     } catch (e) {
       console.error(e);
       canceledByMeRef.current = false;
+      // 실패했을 수 있으니, 필요하면 구독을 다시 붙여도 됨(선택)
       alert('주문 취소 중 오류가 발생했습니다.');
     }
   };
