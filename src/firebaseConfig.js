@@ -19,5 +19,5 @@ const app = initializeApp(firebaseConfig);
 export const auth      = getAuth(app);
 export const db        = getFirestore(app);
 export const storage   = getStorage(app);
-// ← 리전을 us-central1로 고정해야 onCall 함수 호출 시 CORS 문제가 없습니다.
+// 리전을 us-central1로 고정해야 onCall 함수 호출 시 CORS 문제가 없습니다.
 export const functions = getFunctions(app, 'us-central1');

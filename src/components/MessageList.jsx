@@ -1,5 +1,3 @@
-// 경로: src/components/MessageList.jsx
-
 import React, { useState, useEffect } from 'react';
 import backArrow from '../assets/back-arrow.png';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +16,8 @@ import {
 import defaultProfile from '../assets/default-profile.png';
 import '../styles/MessageList.css';
 
-const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
+// ✅ 최소 수정: 환경변수 우선 사용
+const ADMIN_UID = process.env.REACT_APP_ADMIN_UID || 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
 
 // ===== E2EE helpers (채팅방 미리보기 복호화용) =====
 const KEYPAIR_STORAGE = 'e2ee:keypair:v1';
@@ -151,13 +150,12 @@ export default function MessageList() {
             category:    room.category || (room.personaMode ? 'persona' : 'direct'),
             personaMode: room.personaMode === true,
             personaPostId: room.personaPostId || null,
-            // ✅ 추가: 고스트 보관자(게시글 이동으로 남긴 사람)
             ghostHoldBy: room.ghostHoldBy || null
           };
         })
       );
 
-      // ✅ 필터링: 대화가 없는 방(lastAt 없음)은 ghostHoldBy가 나(uid)인 경우에만 노출
+      // 대화가 없는 방(lastAt 없음)은 ghostHoldBy가 나(uid)인 경우에만 노출
       const filtered = fetched.filter(r => {
         const hasActivity = !!(r.lastAt?.toMillis?.() && r.lastAt.toMillis() > 0);
         const isMineGhost = r.ghostHoldBy === uid;
@@ -218,7 +216,6 @@ export default function MessageList() {
           <div className="room-text">
             <div className="room-header">
               <span className="room-nick">{room.nickname}</span>
-              {/* 관리자 페르소나 방: 글보기 버튼 */}
               {uid === ADMIN_UID && room.personaMode && room.personaPostId && (
                 <button
                   onClick={(e) => { e.stopPropagation(); navigate(`/post/${room.personaPostId}`); }}

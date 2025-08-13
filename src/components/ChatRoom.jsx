@@ -1,4 +1,3 @@
-// src/components/ChatRoom.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate }            from 'react-router-dom';
 import { auth, db }                          from '../firebaseConfig';
@@ -25,7 +24,8 @@ import CoinModal      from './CoinModal';
 import ImageModal     from './ImageModal';
 import '../styles/ChatRoom.css';
 
-const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
+// ✅ 최소 수정: 환경변수 우선 사용(없으면 기존 값 사용)
+const ADMIN_UID = process.env.REACT_APP_ADMIN_UID || 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
 
 // ===== E2EE helpers (최소 추가) =====
 const KEYPAIR_STORAGE = 'e2ee:keypair:v1';
@@ -218,7 +218,7 @@ export default function ChatRoom() {
         aesKeyRef.current = null;
       }
 
-      // ⬇️ 여기만 되돌림: posts_public → posts (그리고 try/catch로 보호)
+      // ⬇️ posts_public이 아닌 기존 posts로 복원 + 보호
       if (data.personaPostId) {
         try {
           const p = await getDoc(doc(db, 'posts', data.personaPostId));

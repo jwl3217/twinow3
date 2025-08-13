@@ -138,3 +138,75 @@ export const cronDeleteAuthUsers = onSchedule(
     await batch.commit();
   }
 );
+
+// ─────────────────────────────────────────────────────────────
+// ★ 페르소나 채팅방 열기(생성/재사용) + CORS 처리
+//   POST /openPersonaChat  { postId: string }
+//   헤더: Authorization: Bearer <idToken>
+// ─────────────────────────────────────────────────────────────
+export const openPersonaChat = onRequest({ region: 'us-central1' }, async (req, res) => {
+  setCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST')    return res.status(405).json({ error: 'method_not_allowed' });
+
+  try {
+    const authHeader = req.headers.authorization || '';
+    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!idToken) return res.status(401).json({ error: 'unauthenticated' });
+
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    const uid = decoded.uid;
+
+    const { postId } = req.body || {};
+    if (!postId) return res.status(400).json({ error: 'missing_postId' });
+
+    // 게시글 확인
+    const pDoc = await db.collection('posts').doc(postId).get();
+    if (!pDoc.exists) return res.status(404).json({ error: 'post_not_found' });
+    const pData = pDoc.data() || {};
+
+    if (pData.personaMode !== true) {
+      return res.status(400).json({ error: 'not_persona_post' });
+    }
+
+    const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03';
+
+    // 이미 있는 방 재사용
+    const existSnap = await db.collection('chatRooms')
+      .where('members', 'array-contains', uid)
+      .where('personaPostId', '==', postId)
+      .limit(1)
+      .get();
+
+    if (!existSnap.empty) {
+      return res.status(200).json({ ok: true, roomId: existSnap.docs[0].id });
+    }
+
+    // 새 방 생성
+    const titleFrom = (txt = '') => {
+      const oneline = String(txt).split('\n')[0].trim();
+      return oneline.length > 20 ? oneline.slice(0, 20) + '…' : oneline || '게시글';
+    };
+    const newRef = db.collection('chatRooms').doc();
+    await newRef.set({
+      members: [uid, ADMIN_UID].sort(),
+      lastMessage: '',
+      lastAt: admin.firestore.FieldValue.serverTimestamp(),
+      unlocked:    { [uid]: false, [ADMIN_UID]: false },
+      coins:       { [uid]: 0,     [ADMIN_UID]: 0 },
+
+      // 페르소나 전용 메타
+      personaMode:     true,
+      personaPostId:   postId,
+      personaNickname: pData.nickname || '관리자',
+      personaPhotoURL: pData.photoURL || '',
+      personaTitle:    titleFrom(pData.content || ''),
+      personaExcerpt:  '' // 클라이언트에서 미사용
+    });
+
+    return res.status(200).json({ ok: true, roomId: newRef.id });
+  } catch (e) {
+    logger.error(e);
+    return res.status(500).json({ error: 'internal', message: e.message });
+  }
+});

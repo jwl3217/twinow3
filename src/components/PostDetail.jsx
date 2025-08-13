@@ -26,6 +26,7 @@ import '../styles/PostDetail.css';
 import '../styles/feed.css';
 
 const ADMIN_UID = 'E4d78bGGtnPMvPDl5DLdHx4oRa03'; // ★ 관리자 UID
+const CF_OPEN_URL = 'https://us-central1-twinow3-app.cloudfunctions.net/openPersonaChat'; // ★ 추가: 서버에서 페르소나 방 생성/재사용
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -146,7 +147,7 @@ export default function PostDetail() {
     const myUid = user.uid;
 
     if (post.personaMode === true) {
-      // ① 내 uid + 이 게시글(personaPostId)로 만든 방 재사용
+      // ① 기존 방이 있으면 재사용
       const roomsCol = collection(db, 'chatRooms');
       const qRooms   = query(
         roomsCol,
@@ -158,27 +159,29 @@ export default function PostDetail() {
         return navigate(`/chat/${existSnap.docs[0].id}`);
       }
 
-      // ② 없으면 생성 (멤버: 나 + 관리자)
-      const newRef = doc(roomsCol);
-      await setDoc(newRef, {
-        members: [myUid, ADMIN_UID].sort(),
-        lastMessage: '',
-        lastAt:      serverTimestamp(),
-        unlocked:    { [myUid]: false, [ADMIN_UID]: false },
-        coins:       { [myUid]: 0,     [ADMIN_UID]: 0 },
-
-        // 페르소나 전용 메타
-        personaMode:     true,
-        personaPostId:   id,
-        personaNickname: post.nickname || '관리자',
-        personaPhotoURL: post.photoURL || '',
-        personaTitle:    deriveTitle(post.content || ''),
-        personaExcerpt:  deriveExcerpt(post.content || '')
-      });
-      return navigate(`/chat/${newRef.id}`);
+      // ② 없으면 서버에 생성/재사용 요청(클라이언트는 직접 쓰지 않음)
+      try {
+        const token = await user.getIdToken();
+        const resp  = await fetch(CF_OPEN_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ postId: id })
+        });
+        const data = await resp.json();
+        if (resp.ok && data?.ok && data.roomId) {
+          return navigate(`/chat/${data.roomId}`);
+        }
+      } catch (e) {
+        console.error('openPersonaChat error:', e);
+      }
+      alert('채팅방을 여는 중 오류가 발생했습니다.');
+      return;
     }
 
-    // (일반 글) 기존 1:1 방 있으면 재사용 + 카드 메타 업sert
+    // (일반 글) 기존 1:1 방 있으면 재사용 + 카드 메타 업서트
     const otherUid2 = post.uid;
     const members2  = [myUid, otherUid2].sort();
 
