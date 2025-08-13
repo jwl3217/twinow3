@@ -56,17 +56,26 @@ export default function PostDetail() {
 
   if (!post || !writer) return null;
 
-  // ====== 표시용 필드(페르소나 표식 없이 동작) ======
+  // ====== 표시용 필드 (★ 페르소나 대응) ======
+  const isPersona     = !!post.personaMode; // ★ personaMode=true면 페르소나 글
   const iBlockedThem  = blockedUsers.includes(post.uid);
   const theyBlockedMe = writer.blockedUsers?.includes(me);
   const shouldMask    = iBlockedThem && !showHidden;
 
-  const displayName  = writer.nickname || '알 수 없음';
-  const displayPhoto = shouldMask ? defaultProfile : (writer.photoURL || defaultProfile);
+  // ★ 페르소나 글이면 post에 저장된 닉네임/사진/프로필 메타를 우선 사용
+  const displayName  = isPersona
+    ? (post.nickname || '알 수 없음')
+    : (writer.nickname || '알 수 없음');
 
-  const dispAge    = writer.age;
-  const dispGender = writer.gender;
-  const dispRegion = writer.region;
+  const displayPhoto = shouldMask
+    ? defaultProfile
+    : (isPersona
+        ? (post.photoURL || defaultProfile) // 페르소나 사진 필드명: photoURL 사용 (없으면 기본)
+        : (writer.photoURL || defaultProfile));
+
+  const dispAge    = isPersona ? post.age    : writer.age;
+  const dispGender = isPersona ? post.gender : writer.gender;
+  const dispRegion = isPersona ? post.region : writer.region;
 
   const timeAgo = ts => {
     if (!ts?.toMillis) return '';
@@ -109,9 +118,7 @@ export default function PostDetail() {
 
   // ====== 서버 위임: 방 개설(일반/페르소나 모두) ======
   const OPEN_CHAT_URLS = [
-    // 새 이름(권장)
     'https://us-central1-twinow3-app.cloudfunctions.net/openChat',
-    // 구 이름(배포 과도기 호환)
     'https://us-central1-twinow3-app.cloudfunctions.net/openPersonaChat'
   ];
 
@@ -139,10 +146,7 @@ export default function PostDetail() {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({
-              postId: id
-              // 서버가 postId를 기준으로 상대 UID, 카테고리, 인덱스 생성, participants 생성 등을 모두 처리
-            })
+            body: JSON.stringify({ postId: id })
           });
           if (!res.ok) {
             lastErr = new Error(`${res.status} ${res.statusText}`);
