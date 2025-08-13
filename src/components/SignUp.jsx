@@ -227,6 +227,16 @@ export default function SignUp() {
 
   return (
     <div className="signup-container">
+      {/* ★ iOS 입력 확대(줌) 방지: 이 페이지의 모든 폼 컨트롤 글자 16px 고정 */}
+      <style>{`
+        .signup-container input,
+        .signup-container select,
+        .signup-container button,
+        .signup-container textarea {
+          font-size: 16px; /* 중요: 16px 미만이면 iOS Safari에서 자동 확대됨 */
+        }
+      `}</style>
+
       <h2>회원정보 입력</h2>
 
       <div className="photo-section">
