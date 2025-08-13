@@ -122,7 +122,7 @@ export default function ChatRoom() {
         const list = snap.docs.map(d => {
           const m = { id: d.id, ...d.data() };
           // ★ 폴백: 예전 암호화 메시지는 안내문으로 표시
-          if (!m.text && m.cipher) m.text = '(이전 암호화 메시지)';
+          if (!m.text && m.cipher) m.text = '(오류로 인해 메세지를 볼 수 없습니다)';
           return m;
         });
         setMessages(list);
