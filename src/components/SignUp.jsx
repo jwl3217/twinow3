@@ -24,6 +24,9 @@ import {
 import ImageModal                             from './ImageModal';
 import '../styles/SignUp.css';
 
+// ★ [코인] 기본 지급량(남/여 동일). 숫자만 바꾸면 전체 기본 코인 변경됩니다.
+const DEFAULT_COINS = 2000;
+
 export default function SignUp() {
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -75,7 +78,7 @@ export default function SignUp() {
             gender:        '',
             age:           null,
             region:        '',
-            coins:         100,
+            coins:         DEFAULT_COINS, // ★ [코인] 프리필 계정 생성 시 지급 코인
             authProvider:  u.providerData[0].providerId,
             createdAt:     serverTimestamp()
           });
@@ -158,7 +161,8 @@ export default function SignUp() {
         finalPhotoURL = await getDownloadURL(storageRef);
       }
 
-      const coinsToSet = (gender === 'female') ? 5000 : 100;
+      // ★ [코인] 여기서는 위 기본 지급량을 그대로 사용합니다.
+      const coinsToSet = DEFAULT_COINS;
 
       await setDoc(doc(db, 'users', user.uid), {
         uid:           user.uid,
@@ -169,7 +173,7 @@ export default function SignUp() {
         gender,
         age:           Number(age),
         region,
-        coins:         coinsToSet,
+        coins:         coinsToSet, // ★ [코인] 가입 확정 시 지급 코인
         authProvider:  'password',
         createdAt:     serverTimestamp()
       });
