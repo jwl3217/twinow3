@@ -166,6 +166,10 @@ export default function ChatRoom() {
   const aesKeyRef     = useRef(null);
   const e2eeReadyRef  = useRef(false);
 
+  // ★ 추가: 키 준비 여부(state) & 마지막 원본 스냅샷 보관
+  const [e2eeReady, setE2eeReady]     = useState(false);
+  const [rawMessages, setRawMessages] = useState([]);
+
   useEffect(() => {
     if (!me) return;
     getDoc(doc(db, 'users', me)).then(snap => {
@@ -178,6 +182,7 @@ export default function ChatRoom() {
       if (!myUid || !peerUid) {
         e2eeReadyRef.current = false;
         aesKeyRef.current = null;
+        setE2eeReady(false); // ★
         return;
       }
       const { privateKey } = await getOrCreateMyKeypair(myUid);
@@ -185,15 +190,44 @@ export default function ChatRoom() {
       if (!peerPub) {
         e2eeReadyRef.current = false;
         aesKeyRef.current = null;
+        setE2eeReady(false); // ★
         return;
       }
       const aesKey = await deriveAesKey(privateKey, peerPub);
       aesKeyRef.current = aesKey;
       e2eeReadyRef.current = true;
+      setE2eeReady(true); // ★
     } catch {
       e2eeReadyRef.current = false;
       aesKeyRef.current = null;
+      setE2eeReady(false); // ★
     }
+  };
+
+  // ★ 메시지 배열을 현재 키 상태에 맞춰 가시화
+  const materializeMessages = async (listRaw) => {
+    const ready = e2eeReadyRef.current && aesKeyRef.current;
+    const list = [];
+    for (const m of listRaw) {
+      if (m.cipher) {
+        if (ready) {
+          try {
+            const plain = await decryptText(aesKeyRef.current, m.cipher.iv, m.cipher.ct);
+            list.push({ ...m, text: plain });
+          } catch {
+            list.push({ ...m, text: '(복호화 실패)' });
+          }
+        } else {
+          // 키 준비 전에는 공백 대신 안내 문구로 표시
+          list.push({ ...m, text: '(복호화 준비 중...)' });
+        }
+      } else {
+        list.push(m);
+      }
+    }
+    setMessages(list);
+    hasAnyMessageRef.current = list.length > 0;
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
   };
 
   useEffect(() => {
@@ -227,6 +261,7 @@ export default function ChatRoom() {
         setOtherUser({});
         e2eeReadyRef.current = false;
         aesKeyRef.current = null;
+        setE2eeReady(false); // ★
       }
 
       if (data.personaPostId) {
@@ -248,22 +283,8 @@ export default function ChatRoom() {
       ),
       async snap => {
         const listRaw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const list = [];
-        for (const m of listRaw) {
-          if (m.cipher && e2eeReadyRef.current && aesKeyRef.current) {
-            try {
-              const plain = await decryptText(aesKeyRef.current, m.cipher.iv, m.cipher.ct);
-              list.push({ ...m, text: plain });
-            } catch {
-              list.push({ ...m, text: '' });
-            }
-          } else {
-            list.push(m);
-          }
-        }
-        setMessages(list);
-        hasAnyMessageRef.current = list.length > 0;
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+        setRawMessages(listRaw);              // ★ 원본 보관
+        await materializeMessages(listRaw);   // ★ 현재 키 상태로 가시화
       }
     );
 
@@ -272,6 +293,14 @@ export default function ChatRoom() {
       unsubM();
     };
   }, [navigate, roomId, me]);
+
+  // ★ 키가 준비되면(또는 rawMessages가 바뀌면) 재복호화 시도
+  useEffect(() => {
+    if (rawMessages.length === 0) return;
+    if (e2eeReady) {
+      materializeMessages(rawMessages);
+    }
+  }, [e2eeReady, rawMessages]);
 
   useEffect(() => {
     return () => {
