@@ -25,105 +25,6 @@ import CoinModal      from './CoinModal';
 import ImageModal     from './ImageModal';
 import '../styles/ChatRoom.css';
 
-// ===== E2EE helpers (최소 추가) =====
-const KEYPAIR_STORAGE = 'e2ee:keypair:v1';
-
-const ab2b64 = (buf) => {
-  const bytes = new Uint8Array(buf);
-  let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-};
-const b642ab = (b64) => {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes.buffer;
-};
-
-async function importPrivateJwk(jwk) {
-  return crypto.subtle.importKey(
-    'jwk',
-    jwk,
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    ['deriveKey', 'deriveBits']
-  );
-}
-async function importPublicJwk(jwk) {
-  return crypto.subtle.importKey(
-    'jwk',
-    jwk,
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    []
-  );
-}
-async function exportJwk(key) {
-  return crypto.subtle.exportKey('jwk', key);
-}
-
-async function getOrCreateMyKeypair(uid) {
-  const cached = localStorage.getItem(KEYPAIR_STORAGE);
-  if (cached) {
-    const { pub, priv } = JSON.parse(cached);
-    return {
-      publicKey: await importPublicJwk(pub),
-      privateKey: await importPrivateJwk(priv),
-      pubJwk: pub
-    };
-  }
-  const keypair = await crypto.subtle.generateKey(
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    ['deriveKey', 'deriveBits']
-  );
-  const pubJwk  = await exportJwk(keypair.publicKey);
-  const privJwk = await exportJwk(keypair.privateKey);
-  localStorage.setItem(KEYPAIR_STORAGE, JSON.stringify({ pub: pubJwk, priv: privJwk }));
-  try {
-    const uref  = doc(db, 'users', uid);
-    const usnap = await getDoc(uref);
-    const cur   = usnap.data() || {};
-    if (!cur.e2eePub) {
-      await updateDoc(uref, { e2eePub: pubJwk }).catch(async () => {});
-    }
-  } catch {}
-  return { publicKey: keypair.publicKey, privateKey: keypair.privateKey, pubJwk };
-}
-
-async function getOtherPublicKey(otherUid) {
-  if (!otherUid) return null;
-  const usnap = await getDoc(doc(db, 'users', otherUid));
-  const data = usnap.data();
-  if (!data || !data.e2eePub) return null;
-  return importPublicJwk(data.e2eePub);
-}
-
-async function deriveAesKey(myPrivKey, otherPubKey) {
-  return crypto.subtle.deriveKey(
-    { name: 'ECDH', public: otherPubKey },
-    myPrivKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-}
-
-async function encryptText(aesKey, plain) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const enc = new TextEncoder().encode(plain);
-  const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, enc);
-  return { iv: ab2b64(iv), ct: ab2b64(ct) };
-}
-async function decryptText(aesKey, ivB64, ctB64) {
-  const iv = new Uint8Array(b642ab(ivB64));
-  const ct = b642ab(ctB64);
-  const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, aesKey, ct);
-  return new TextDecoder().decode(buf);
-}
-// ====================================
-
 export default function ChatRoom() {
   const { roomId } = useParams();
   const navigate  = useNavigate();
@@ -163,72 +64,12 @@ export default function ChatRoom() {
   const hasAnyMessageRef = useRef(false);
   const preventAutoDeleteRef = useRef(false);
 
-  const aesKeyRef     = useRef(null);
-  const e2eeReadyRef  = useRef(false);
-
-  // ★ 추가: 키 준비 여부(state) & 마지막 원본 스냅샷 보관
-  const [e2eeReady, setE2eeReady]     = useState(false);
-  const [rawMessages, setRawMessages] = useState([]);
-
   useEffect(() => {
     if (!me) return;
     getDoc(doc(db, 'users', me)).then(snap => {
       setBlockedUsers(snap.data()?.blockedUsers || []);
     });
   }, [me]);
-
-  const prepareE2EE = async (myUid, peerUid) => {
-    try {
-      if (!myUid || !peerUid) {
-        e2eeReadyRef.current = false;
-        aesKeyRef.current = null;
-        setE2eeReady(false); // ★
-        return;
-      }
-      const { privateKey } = await getOrCreateMyKeypair(myUid);
-      const peerPub = await getOtherPublicKey(peerUid);
-      if (!peerPub) {
-        e2eeReadyRef.current = false;
-        aesKeyRef.current = null;
-        setE2eeReady(false); // ★
-        return;
-      }
-      const aesKey = await deriveAesKey(privateKey, peerPub);
-      aesKeyRef.current = aesKey;
-      e2eeReadyRef.current = true;
-      setE2eeReady(true); // ★
-    } catch {
-      e2eeReadyRef.current = false;
-      aesKeyRef.current = null;
-      setE2eeReady(false); // ★
-    }
-  };
-
-  // ★ 메시지 배열을 현재 키 상태에 맞춰 가시화
-  const materializeMessages = async (listRaw) => {
-    const ready = e2eeReadyRef.current && aesKeyRef.current;
-    const list = [];
-    for (const m of listRaw) {
-      if (m.cipher) {
-        if (ready) {
-          try {
-            const plain = await decryptText(aesKeyRef.current, m.cipher.iv, m.cipher.ct);
-            list.push({ ...m, text: plain });
-          } catch {
-            list.push({ ...m, text: '(복호화 실패)' });
-          }
-        } else {
-          // 키 준비 전에는 공백 대신 안내 문구로 표시
-          list.push({ ...m, text: '(복호화 준비 중...)' });
-        }
-      } else {
-        list.push(m);
-      }
-    }
-    setMessages(list);
-    hasAnyMessageRef.current = list.length > 0;
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-  };
 
   useEffect(() => {
     if (!me) {
@@ -256,12 +97,8 @@ export default function ChatRoom() {
       if (other) {
         const us = await getDoc(doc(db, 'users', other));
         setOtherUser(us.exists() ? us.data() : { deleted: true });
-        await prepareE2EE(me, other);
       } else {
         setOtherUser({});
-        e2eeReadyRef.current = false;
-        aesKeyRef.current = null;
-        setE2eeReady(false); // ★
       }
 
       if (data.personaPostId) {
@@ -281,10 +118,16 @@ export default function ChatRoom() {
         collection(db, 'chatRooms', roomId, 'messages'),
         orderBy('sentAt')
       ),
-      async snap => {
-        const listRaw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setRawMessages(listRaw);              // ★ 원본 보관
-        await materializeMessages(listRaw);   // ★ 현재 키 상태로 가시화
+      snap => {
+        const list = snap.docs.map(d => {
+          const m = { id: d.id, ...d.data() };
+          // ★ 폴백: 예전 암호화 메시지는 안내문으로 표시
+          if (!m.text && m.cipher) m.text = '(이전 암호화 메시지)';
+          return m;
+        });
+        setMessages(list);
+        hasAnyMessageRef.current = list.length > 0;
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
       }
     );
 
@@ -293,14 +136,6 @@ export default function ChatRoom() {
       unsubM();
     };
   }, [navigate, roomId, me]);
-
-  // ★ 키가 준비되면(또는 rawMessages가 바뀌면) 재복호화 시도
-  useEffect(() => {
-    if (rawMessages.length === 0) return;
-    if (e2eeReady) {
-      materializeMessages(rawMessages);
-    }
-  }, [e2eeReady, rawMessages]);
 
   useEffect(() => {
     return () => {
@@ -353,35 +188,17 @@ export default function ChatRoom() {
     const txt = input.trim();
     if (!txt) return;
 
-    if (e2eeReadyRef.current && aesKeyRef.current) {
-      try {
-        const { iv, ct } = await encryptText(aesKeyRef.current, txt);
-        await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
-          cipher: { v: 1, iv, ct },
-          sender: me,
-          sentAt: serverTimestamp()
-        });
-        setInput('');
-        const targetUid = personaMode ? (isAdminUser ? otherUid : effectiveAdminUid) : otherUid;
-        await updateDoc(doc(db, 'chatRooms', roomId), {
-          lastMessage: '',
-          lastMessageCipher: { v: 1, iv, ct },
-          lastAt: serverTimestamp(),
-          ...(targetUid ? { [`unread.${targetUid}`]: increment(1) } : {})
-        });
-        return;
-      } catch {}
-    }
-
+    // ★ 암호화 제거: 평문으로 저장
     await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
       text:   txt,
       sender: me,
       sentAt: serverTimestamp()
     });
     setInput('');
+
     const targetUid = personaMode ? (isAdminUser ? otherUid : effectiveAdminUid) : otherUid;
     await updateDoc(doc(db, 'chatRooms', roomId), {
-      lastMessage: txt,
+      lastMessage: txt,              // ★ lastMessageCipher 제거
       lastAt:      serverTimestamp(),
       ...(targetUid ? { [`unread.${targetUid}`]: increment(1) } : {})
     });
@@ -510,9 +327,7 @@ export default function ChatRoom() {
           </div>
         )}
 
-        <div style={{ textAlign: 'center', fontSize: 12, color: '#666', margin: '8px 0' }}>
-          채팅 정보는 암호화되어 보관되며, 관리자가 확인할 수 없습니다.
-        </div>
+        {/* ★ 암호화 안내 문구 제거됨 */}
 
         {messages.map(msg => (
           <div
