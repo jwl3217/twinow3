@@ -21,7 +21,7 @@ import defaultProfile from '../assets/default-profile.png';
 import backArrow      from '../assets/back-arrow.png';
 import threeDotsIcon  from '../assets/three-dots-icon.png';
 import sendIcon       from '../assets/send-icon.png';
-// import CoinModal   from './CoinModal'; // ★ 사용 안 함(간단 모달로 대체)
+// import CoinModal   from './CoinModal'; // 사용 안 함
 import ImageModal     from './ImageModal';
 import '../styles/ChatRoom.css';
 
@@ -62,9 +62,6 @@ export default function ChatRoom() {
   const [pinnedPost, setPinnedPost] = useState(undefined);
   const hasAnyMessageRef = useRef(false);
   const preventAutoDeleteRef = useRef(false);
-
-  // ★ 단순 모달(웹 기본 디자인)
-  const [showUnlockModal, setShowUnlockModal] = useState(false);
 
   useEffect(() => {
     if (!me) return;
@@ -213,18 +210,15 @@ export default function ChatRoom() {
       const snap = await getDoc(uref);
       const coins = snap.data()?.coins || 0;
       if (coins < 100) {
-        setShowUnlockModal(false);
         alert('코인이 부족합니다.');
         navigate('/shop');
         return;
       }
       await updateDoc(uref, { coins: increment(-100) });
       await updateDoc(doc(db, 'chatRooms', roomId), { activated: true });
-      setShowUnlockModal(false);
       await actuallySend();
     } catch (e) {
-      setShowUnlockModal(false);
-      alert('잠금 해제 중 오류가 발생했습니다.');
+      alert('활성화 중 오류가 발생했습니다.');
     }
   };
 
@@ -234,7 +228,6 @@ export default function ChatRoom() {
 
     // ★ 조건: 방이 아직 활성화되지 않았고, 지금이 "첫 메시지"라면(= 메시지 없음) 해금 필요
     if (!room?.activated && messages.length === 0) {
-      // 코인 보유 확인 후 모달 표시
       try {
         const snap  = await getDoc(doc(db, 'users', me));
         const coins = snap.data()?.coins || 0;
@@ -243,7 +236,10 @@ export default function ChatRoom() {
           navigate('/shop');
           return;
         }
-        setShowUnlockModal(true);
+        // ★ 브라우저 기본 confirm() 사용: 추가 디자인 없이 시스템 모달
+        const ok = window.confirm('코인 100개를 사용하여 채팅방을 활성화하시겠습니까?');
+        if (!ok) return;
+        await confirmUnlockAndSend();
         return;
       } catch {
         alert('사용자 정보를 불러올 수 없습니다.');
@@ -404,42 +400,6 @@ export default function ChatRoom() {
             <button className="send-btn" onClick={handleSend}>
               <img src={sendIcon} alt="전송" />
             </button>
-          </div>
-        </>
-      )}
-
-      {/* ★ 간단 모달(웹 기본 디자인) */}
-      {showUnlockModal && (
-        <>
-          <div
-            onClick={() => setShowUnlockModal(false)}
-            style={{
-              position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:1000
-            }}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            style={{
-              position:'fixed',
-              top:'50%', left:'50%',
-              transform:'translate(-50%,-50%)',
-              background:'#fff',
-              padding:'16px',
-              border:'1px solid #ccc',
-              borderRadius:'6px',
-              zIndex:1001,
-              minWidth:260,
-              textAlign:'center'
-            }}
-          >
-            <div style={{ marginBottom:12 }}>
-              코인 100개를 사용하여 채팅방을 활성화하시겠습니까?
-            </div>
-            <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
-              <button onClick={confirmUnlockAndSend}>네</button>
-              <button onClick={() => setShowUnlockModal(false)}>아니요</button>
-            </div>
           </div>
         </>
       )}
