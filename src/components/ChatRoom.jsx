@@ -21,7 +21,7 @@ import defaultProfile from '../assets/default-profile.png';
 import backArrow      from '../assets/back-arrow.png';
 import threeDotsIcon  from '../assets/three-dots-icon.png';
 import sendIcon       from '../assets/send-icon.png';
-import CoinModal      from './CoinModal';
+// import CoinModal   from './CoinModal'; // ★ 사용 안 함(간단 모달로 대체)
 import ImageModal     from './ImageModal';
 import '../styles/ChatRoom.css';
 
@@ -55,7 +55,6 @@ export default function ChatRoom() {
   const [messages,     setMessages]     = useState([]);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [menuOpen,     setMenuOpen]     = useState(false);
-  const [modalType,    setModalType]    = useState(null);
   const [input,        setInput]        = useState('');
   const [imgModalSrc,  setImgModalSrc]  = useState(null);
   const bottomRef                       = useRef();
@@ -63,6 +62,9 @@ export default function ChatRoom() {
   const [pinnedPost, setPinnedPost] = useState(undefined);
   const hasAnyMessageRef = useRef(false);
   const preventAutoDeleteRef = useRef(false);
+
+  // ★ 단순 모달(웹 기본 디자인)
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
 
   useEffect(() => {
     if (!me) return;
@@ -121,7 +123,7 @@ export default function ChatRoom() {
       snap => {
         const list = snap.docs.map(d => {
           const m = { id: d.id, ...d.data() };
-          // ★ 폴백: 예전 암호화 메시지는 안내문으로 표시
+          // ★ 과거 암호화 메시지 폴백
           if (!m.text && m.cipher) m.text = '(오류로 인해 메세지를 볼 수 없습니다)';
           return m;
         });
@@ -188,7 +190,7 @@ export default function ChatRoom() {
     const txt = input.trim();
     if (!txt) return;
 
-    // ★ 암호화 제거: 평문으로 저장
+    // 평문으로 저장
     await addDoc(collection(db, 'chatRooms', roomId, 'messages'), {
       text:   txt,
       sender: me,
@@ -198,29 +200,59 @@ export default function ChatRoom() {
 
     const targetUid = personaMode ? (isAdminUser ? otherUid : effectiveAdminUid) : otherUid;
     await updateDoc(doc(db, 'chatRooms', roomId), {
-      lastMessage: txt,              // ★ lastMessageCipher 제거
+      lastMessage: txt,
       lastAt:      serverTimestamp(),
       ...(targetUid ? { [`unread.${targetUid}`]: increment(1) } : {})
     });
   };
 
-  const handleUseCoinConfirm = async () => {
-    await updateDoc(doc(db, 'users', me), { coins: increment(-100) });
-    await updateDoc(doc(db, 'chatRooms', roomId), { [`unlocked.${me}`]: true });
-    setModalType(null);
-    actuallySend();
+  // ★ 첫 메시지 해금(코인 차감 + 방 활성화)
+  const confirmUnlockAndSend = async () => {
+    try {
+      const uref = doc(db, 'users', me);
+      const snap = await getDoc(uref);
+      const coins = snap.data()?.coins || 0;
+      if (coins < 100) {
+        setShowUnlockModal(false);
+        alert('코인이 부족합니다.');
+        navigate('/shop');
+        return;
+      }
+      await updateDoc(uref, { coins: increment(-100) });
+      await updateDoc(doc(db, 'chatRooms', roomId), { activated: true });
+      setShowUnlockModal(false);
+      await actuallySend();
+    } catch (e) {
+      setShowUnlockModal(false);
+      alert('잠금 해제 중 오류가 발생했습니다.');
+    }
   };
 
   const handleSend = async () => {
-    const unlocked = room?.unlocked?.[me];
-    const hasOther  = messages.some(m => m.sender !== me);
-    if (!unlocked && hasOther) {
-      const snap  = await getDoc(doc(db, 'users', me));
-      const coins = snap.data()?.coins || 0;
-      setModalType(coins < 100 ? 'noCoin' : 'useCoin');
-      return;
+    const txt = input.trim();
+    if (!txt) return;
+
+    // ★ 조건: 방이 아직 활성화되지 않았고, 지금이 "첫 메시지"라면(= 메시지 없음) 해금 필요
+    if (!room?.activated && messages.length === 0) {
+      // 코인 보유 확인 후 모달 표시
+      try {
+        const snap  = await getDoc(doc(db, 'users', me));
+        const coins = snap.data()?.coins || 0;
+        if (coins < 100) {
+          alert('코인이 부족합니다.');
+          navigate('/shop');
+          return;
+        }
+        setShowUnlockModal(true);
+        return;
+      } catch {
+        alert('사용자 정보를 불러올 수 없습니다.');
+        return;
+      }
     }
-    actuallySend();
+
+    // 이미 활성화된 방이거나, 첫 메시지가 아님
+    await actuallySend();
   };
 
   const handleLeave   = async () => {
@@ -327,8 +359,6 @@ export default function ChatRoom() {
           </div>
         )}
 
-        {/* ★ 암호화 안내 문구 제거됨 */}
-
         {messages.map(msg => (
           <div
             key={msg.id}
@@ -375,13 +405,42 @@ export default function ChatRoom() {
               <img src={sendIcon} alt="전송" />
             </button>
           </div>
-          {modalType && (
-            <CoinModal
-              type={modalType}
-              onConfirm={modalType === 'noCoin' ? () => navigate('/shop') : handleUseCoinConfirm}
-              onCancel={() => setModalType(null)}
-            />
-          )}
+        </>
+      )}
+
+      {/* ★ 간단 모달(웹 기본 디자인) */}
+      {showUnlockModal && (
+        <>
+          <div
+            onClick={() => setShowUnlockModal(false)}
+            style={{
+              position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:1000
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position:'fixed',
+              top:'50%', left:'50%',
+              transform:'translate(-50%,-50%)',
+              background:'#fff',
+              padding:'16px',
+              border:'1px solid #ccc',
+              borderRadius:'6px',
+              zIndex:1001,
+              minWidth:260,
+              textAlign:'center'
+            }}
+          >
+            <div style={{ marginBottom:12 }}>
+              코인 100개를 사용하여 채팅방을 활성화하시겠습니까?
+            </div>
+            <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
+              <button onClick={confirmUnlockAndSend}>네</button>
+              <button onClick={() => setShowUnlockModal(false)}>아니요</button>
+            </div>
+          </div>
         </>
       )}
 
