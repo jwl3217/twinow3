@@ -21,7 +21,6 @@ import defaultProfile from '../assets/default-profile.png';
 import backArrow      from '../assets/back-arrow.png';
 import threeDotsIcon  from '../assets/three-dots-icon.png';
 import sendIcon       from '../assets/send-icon.png';
-// import CoinModal   from './CoinModal'; // 사용 안 함
 import ImageModal     from './ImageModal';
 import '../styles/ChatRoom.css';
 
@@ -62,6 +61,10 @@ export default function ChatRoom() {
   const [pinnedPost, setPinnedPost] = useState(undefined);
   const hasAnyMessageRef = useRef(false);
   const preventAutoDeleteRef = useRef(false);
+
+  // ★ 모달 상태
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [showNoCoinModal, setShowNoCoinModal] = useState(false);
 
   useEffect(() => {
     if (!me) return;
@@ -209,16 +212,20 @@ export default function ChatRoom() {
       const uref = doc(db, 'users', me);
       const snap = await getDoc(uref);
       const coins = snap.data()?.coins || 0;
+
       if (coins < 100) {
-        alert('코인이 부족합니다.');
-        navigate('/shop');
+        setShowUnlockModal(false);
+        setShowNoCoinModal(true); // 코인 없음 모달로 전환
         return;
       }
+
       await updateDoc(uref, { coins: increment(-100) });
       await updateDoc(doc(db, 'chatRooms', roomId), { activated: true });
+      setShowUnlockModal(false);
       await actuallySend();
     } catch (e) {
-      alert('활성화 중 오류가 발생했습니다.');
+      setShowUnlockModal(false);
+      alert('잠금 해제 중 오류가 발생했습니다.');
     }
   };
 
@@ -226,28 +233,13 @@ export default function ChatRoom() {
     const txt = input.trim();
     if (!txt) return;
 
-    // ★ 조건: 방이 아직 활성화되지 않았고, 지금이 "첫 메시지"라면(= 메시지 없음) 해금 필요
+    // ★ 조건: 방 미활성 + 첫 메시지 → 확인 모달
     if (!room?.activated && messages.length === 0) {
-      try {
-        const snap  = await getDoc(doc(db, 'users', me));
-        const coins = snap.data()?.coins || 0;
-        if (coins < 100) {
-          alert('코인이 부족합니다.');
-          navigate('/shop');
-          return;
-        }
-        // ★ 브라우저 기본 confirm() 사용: 추가 디자인 없이 시스템 모달
-        const ok = window.confirm('코인 100개를 사용하여 채팅방을 활성화하시겠습니까?');
-        if (!ok) return;
-        await confirmUnlockAndSend();
-        return;
-      } catch {
-        alert('사용자 정보를 불러올 수 없습니다.');
-        return;
-      }
+      setShowUnlockModal(true);
+      return;
     }
 
-    // 이미 활성화된 방이거나, 첫 메시지가 아님
+    // 이미 활성화되었거나 첫 메시지가 아님
     await actuallySend();
   };
 
@@ -400,6 +392,40 @@ export default function ChatRoom() {
             <button className="send-btn" onClick={handleSend}>
               <img src={sendIcon} alt="전송" />
             </button>
+          </div>
+        </>
+      )}
+
+      {/* ★ 모달: 첫 메시지 해금 확인 */}
+      {showUnlockModal && (
+        <>
+          <div className="modal-overlay" />
+          <div className="modal-box" role="dialog" aria-modal="true">
+            <div className="modal-title">채팅방 활성화</div>
+            <div className="modal-body">코인 100개를 사용하여 채팅방을 활성화하시겠습니까?</div>
+            <div className="modal-actions">
+              <button className="modal-btn primary" onClick={confirmUnlockAndSend}>네</button>
+              <button className="modal-btn" onClick={() => setShowUnlockModal(false)}>아니요</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ★ 모달: 코인 부족 */}
+      {showNoCoinModal && (
+        <>
+          <div className="modal-overlay" />
+          <div className="modal-box" role="dialog" aria-modal="true">
+            <div className="modal-title">코인 부족</div>
+            <div className="modal-body">사용할 수 있는 코인이 없습니다.</div>
+            <div className="modal-actions">
+              <button
+                className="modal-btn primary"
+                onClick={() => { setShowNoCoinModal(false); navigate('/shop'); }}
+              >
+                코인 구매하러 가기
+              </button>
+            </div>
           </div>
         </>
       )}

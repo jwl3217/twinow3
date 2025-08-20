@@ -279,3 +279,62 @@
   color: #666;
     text-align: center;
 }
+
+
+
+/* ===== 공통 모달 스타일 (MessageList 등과 톤 맞춤) ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 1000;
+}
+
+.modal-box {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 1001;
+  width: min(90vw, 360px);
+  text-align: center;
+}
+
+.modal-title {
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.modal-body {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.modal-btn.primary {
+  background: #1da1f2;
+  color: #fff;
+}
+.modal-btn:hover { opacity: 0.95; }
